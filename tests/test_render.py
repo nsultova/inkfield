@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import pytest
 
-from inkfield.core.piece import discover
+from inkfield.core.piece import Meta, Piece, discover
 from inkfield.page.svg import read_settings
 from inkfield.render import render
 
@@ -48,6 +48,12 @@ def test_seed_is_coerced_like_make_rng(seed, expected):
 def test_nothing_to_draw_is_still_a_valid_svg():    # Review Focus 3
     r = render(PIECES, "chemical-waves", seed=1, params={"elapsed": 0.08, "wavelength": 14, "sources": 1, "stagger": 1}, finish={"border": False}, page={"format": "Square", "margin": 40})
     ET.fromstring(r.svg); assert r.stats["strokes"] == len(re.findall("<path", r.svg))
+
+def test_a_piece_that_draws_nothing_gives_an_empty_valid_svg():    # Review Focus 3
+    blank = Piece(meta=Meta("blank", "Blank", "", "rect", ""), params=[], generate=lambda params, frame, rng: [])
+    r = render({"blank": blank}, "blank", finish={"border": False})
+    ET.fromstring(r.svg); assert "<path" not in r.svg
+    assert r.stats == {"strokes": 0, "drawn_m": 0.0, "travel_m": 0.0, "minutes": 0.0}
 
 def test_unknown_piece():
     with pytest.raises(KeyError): render(PIECES, "nope")

@@ -101,19 +101,44 @@ def keep_where(points, inside, tol: float = 0.01) -> list[np.ndarray]:
 def simplify(points, tol: float) -> np.ndarray:
     """Fewer points, same look: drop every point that lies within tol of the simplified line.
 
-    This is the Ramer–Douglas–Peucker method. Draw a straight segment from the first point to the
-    last and find the point furthest from it. If that point is within tol, the segment is a good
-    enough stand-in and everything between can go. Otherwise keep that point and repeat on the
-    two halves on either side of it.
+    The idea (Ramer–Douglas–Peucker). Lay a straight segment from the first point to the last;
+    call the stretch of line between them a "span". Find the point of the span furthest from that
+    segment. If even that point is within tol, the segment is a good enough stand-in and every
+    point between can go. Otherwise the furthest point is a corner worth keeping: keep it, and it
+    splits the span into two smaller spans, each checked the same way. It stops when every span
+    is either a single segment or close enough to its straight stand-in.
 
     The first and last points are always kept, so a closed line stays closed. (For a closed line
     the first "segment" has zero length; distance to it is just distance to that point, so the
     furthest point of the loop is kept and the halves proceed as usual.)
 
-    For speed, all the spans waiting to be checked are handled together, one round per level of
-    splitting, instead of one at a time: the points of every span go into one flat list, each
-    tagged with its span, so a round costs a few numpy calls however many spans there are. Each
-    span is still decided only by its own points, so the result is the same as one at a time.
+    The plain version takes the spans one at a time:
+
+        keep = {0, n - 1}
+        spans = [(0, n - 1)]
+        while spans:
+            first, last = spans.pop()
+            if last - first < 2:
+                continue                                   # no points in between
+            distance = distance of points[first+1 : last] to segment points[first]→points[last]
+            furthest = first + 1 + argmax(distance)        # the earliest one on a tie
+            if distance.max() > tol:
+                keep.add(furthest)
+                spans += [(first, furthest), (furthest, last)]
+        return points[sorted(keep)]
+
+    What the code below does differently: it handles all open spans in one numpy pass per round
+    instead of one at a time, which is far faster on long lines (each separate numpy call has a
+    fixed cost, and the plain version makes one per kept point). In each round, the in-between
+    points of every open span go into one flat list, each tagged with the span it belongs to.
+    One call measures all their distances, and each span's furthest point is found among its own
+    tagged points. The spans that split make the next round's spans.
+
+    Why the result is the same: whether a span splits, and where, depends only on that span's own
+    points and ends, never on the other spans or the order they are handled in. So handling them
+    together, one round per level of splitting, keeps exactly the points the plain version keeps.
+    (Only last-bit rounding in the distances can differ from another way of computing them, and
+    that can only switch which of two points, equally far to within that rounding, is kept.)
     """
     points = np.asarray(points, dtype=np.float64)
     if len(points) < 3:
