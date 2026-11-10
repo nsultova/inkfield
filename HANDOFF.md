@@ -2,7 +2,7 @@
 
 Session ended: 2026-11-10 (evening)
 Branch / HEAD: master (inkfield-studio @ 528f000 merged by fast-forward)
-Home: ~/WORK/PROJECTS/inkfield, its own repository (GitHub: nsultova/inkfield, private). Copied on
+Home: ~/PROJECTS/inkfield, its own repository (GitHub: nsultova/inkfield, private). Copied on
 2026-11-10 from the training repo ~/WORK/AiEXP/AiEXP-procedural-art, which stays on its old master.
 
 ## Goal
