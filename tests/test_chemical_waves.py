@@ -4,7 +4,7 @@ import pytest
 from inkfield.core.controls import resolve
 from inkfield.core.frame import Frame
 from inkfield.core.rng import make_rng
-from inkfield.pieces.chemical_waves import PARAMS, generate
+from inkfield.pieces.chemical_waves import PARAMS, generate, uneven_medium
 
 FRAME = Frame("circle", 105, 148.5, 86, 86)
 D = resolve(PARAMS, None)
@@ -53,3 +53,14 @@ def test_spiral_has_a_clean_core():
     s = run(sources=1, spirals=1.0, uneven=0, stagger=0, elapsed=0.6, wavelength=6)
     P = FRAME.sample(make_rng(7, "piece"), 1, shrink=0.92)[0]
     assert np.hypot(*(pts(s) - P).T).min() >= 0.35 * 6 - 0.05
+
+def test_uneven_medium_never_folds_space():
+    # strongest unevenness at the longest wavelength: every small cell of the page must map to a
+    # cell the same way round in the medium (positive Jacobian determinant), or rings would cross
+    x0, y0, x1, y1 = FRAME.bbox
+    xs, ys = np.linspace(x0, x1, 861), np.linspace(y0, y1, 861)
+    for seed in range(5):
+        qx, qy = uneven_medium(FRAME, make_rng(seed, "piece"), 1.0, 14)(*np.meshgrid(xs, ys))
+        qx_x, qy_x = np.diff(qx, axis=1)[:-1], np.diff(qy, axis=1)[:-1]       # change along x
+        qx_y, qy_y = np.diff(qx, axis=0)[:, :-1], np.diff(qy, axis=0)[:, :-1]  # change along y
+        assert (qx_x * qy_y - qy_x * qx_y).min() > 0

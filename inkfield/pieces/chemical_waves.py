@@ -43,10 +43,13 @@ has travelled".
 * Uneven medium: real dishes are not perfectly uniform, so rings come out a little lumpy. Before
   any distance is measured, each point p is moved to
 
-      q = p + unevenness · 1.2 · wavelength · F(p)
+      q = p + strength · F(p),   strength = min(unevenness · 1.2 · wavelength, 0.08 · W)
 
-  where F is a smooth random field (see `inkfield.core.noise`) whose ripples are about the size
-  of the frame. All formulas above use q.
+  where F is a smooth random field (see `inkfield.core.noise`) whose ripples have size
+  W = 0.9 · the frame's reference length. The cap 0.08 · W is there because pushing points
+  further than that, over ripples that short, would bend space so hard that it folds over
+  itself: two nearby page points would swap places, and rings would cross themselves. Below the
+  cap neighbouring points always keep their order. All formulas above use q.
 
 The controls
 ------------
@@ -112,6 +115,7 @@ PARAMS = [
 PLACEMENT_SHRINK = 0.92     # pacemakers stay off the outer 8 % of the frame
 UNEVEN_REACH = 1.2          # at full unevenness, points move up to 1.2 wavelengths
 UNEVEN_SIZE = 0.9           # size of the medium's ripples, in frame reference lengths
+UNEVEN_LIMIT = 0.08         # largest push, in ripple sizes: more would fold space over itself
 LARGEST_CELL = 0.5          # grid cell size limit, mm
 CELLS_PER_WAVELENGTH = 8
 CORE_RADIUS = 0.35          # spiral arms stop this many wavelengths from the core
@@ -134,7 +138,7 @@ def generate(params, frame, rng) -> list[Stroke]:
     # 1. The sources, and the slightly uneven medium their waves travel through.
     pacemakers = place_pacemakers(frame, rng, params["sources"], params["spirals"],
                                   params["stagger"], elapsed_mm)
-    measure = uneven_medium(frame, rng, params["uneven"] * UNEVEN_REACH * wavelength)
+    measure = uneven_medium(frame, rng, params["uneven"], wavelength)
 
     # 2. A grid over the frame, every grid point moved into the uneven medium once.
     cell = min(LARGEST_CELL, wavelength / CELLS_PER_WAVELENGTH)
@@ -171,13 +175,16 @@ def place_pacemakers(frame, rng, count, spiral_share, stagger, elapsed_mm) -> li
             for (x, y), (u_delay, u_kind, u_turn, u_offset) in zip(positions, draws)]
 
 
-def uneven_medium(frame, rng, strength):
+def uneven_medium(frame, rng, unevenness, wavelength):
     """measure(x, y) -> (qx, qy): where each page point lies in the uneven medium.
 
     q = p + strength · F(p), with F a smooth random field whose ripples are about as large as the
-    frame. With strength 0 the medium is even and q is simply p.
+    frame. The strength grows with unevenness and wavelength but is capped at UNEVEN_LIMIT ripple
+    sizes so that space never folds. With strength 0 the medium is even and q is simply p.
     """
-    field = SmoothField(rng, wavelength=UNEVEN_SIZE * frame.scale)
+    ripple_size = UNEVEN_SIZE * frame.scale
+    field = SmoothField(rng, wavelength=ripple_size)
+    strength = min(unevenness * UNEVEN_REACH * wavelength, UNEVEN_LIMIT * ripple_size)
 
     def measure(x, y):
         if strength == 0:
