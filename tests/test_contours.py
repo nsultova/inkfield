@@ -39,3 +39,12 @@ def test_whole_numbers_gives_one_ring_per_wavelength():
     assert radii == [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
     for ln in closed:
         r = np.hypot(ln[:, 0] - 50, ln[:, 1] - 50); assert r.max() - r.min() < 0.05
+
+
+def test_no_point_repeats_where_the_field_is_exactly_zero_on_the_grid():
+    # The diagonal x == y and the circle of radius 25 both run through grid points exactly.
+    for field in (X - Y, np.hypot(X - 50, Y - 50) - 25):
+        lines = trace_zero(field, xs, ys)
+        assert lines and all(len(ln) >= 2 for ln in lines)
+        for ln in lines:
+            assert (np.hypot(*np.diff(ln, axis=0).T) > 0).all()

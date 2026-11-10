@@ -123,8 +123,16 @@ def trace_zero(field, xs, ys, cells=None) -> list[np.ndarray]:
                 ids.append(edge_id)
             segments.append((ids[0], ids[1]))
 
-    # Step 3: chain the segments into lines through their shared edges.
-    return [np.array([point_on_edge[e] for e in chain]) for chain in _chain(segments)]
+    # Step 3: chain the segments into lines through their shared edges. Where the field is exactly
+    # zero at a grid point, the edges that meet there all cross at that same point, so it would
+    # appear several times in a row; keep it once. A line that shrinks to a single point is dropped.
+    lines = []
+    for chain in _chain(segments):
+        points = [point_on_edge[e] for e in chain]
+        points = [p for k, p in enumerate(points) if k == 0 or p != points[k - 1]]
+        if len(points) >= 2:
+            lines.append(np.array(points))
+    return lines
 
 
 def _chain(segments) -> list[list[int]]:
