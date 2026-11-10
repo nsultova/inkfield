@@ -1,1 +1,38 @@
-<!doctype html><html><head><meta charset="utf-8"><title>inkfield</title></head><body><p>inkfield studio: front end arrives in Task 9.</p></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>inkfield</title>
+<link rel="stylesheet" href="app.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+
+<header>
+  <div class="mark">ink<span>field</span></div>
+  <div class="spacer"></div>
+  <label class="seed">seed <input id="seed" type="number" min="0" step="1" value="0"></label>
+  <button class="btn icon" id="dice" title="New random seed">↻</button>
+  <button class="btn" id="keep">Keep candidate</button>
+  <button class="btn primary" id="export">Export SVG</button>
+</header>
+
+<nav id="pieces">
+  <div class="cap">Pieces</div>
+</nav>
+
+<main id="stage">
+  <div id="paper"></div>
+  <div class="stats" id="stats"></div>
+</main>
+
+<footer id="tray">
+  <div class="cap">Kept</div>
+  <span class="empty" id="empty">Nothing kept yet. "Keep candidate" pins the current plot here; click a thumbnail to return to it, × to remove it.</span>
+</footer>
+
+<aside id="panel"></aside>
+
+</body>
+</html>
