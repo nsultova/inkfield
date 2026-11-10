@@ -20,6 +20,16 @@ def test_keep_where_splits_into_several_parts():
     assert len(parts) == 2 and abs(parts[0][-1, 1] - 8) <= 0.01 and abs(parts[1][0, 1] - 20) <= 0.01
 
 
+def test_keep_where_cut_ends_are_inside():
+    circle = lambda x, y: np.hypot(x, y) <= 10
+    x = np.linspace(-30, 30, 200); wave = np.column_stack([x, 12 * np.sin(x / 2)])
+    parts = keep_where(wave, circle)
+    assert len(parts) > 2
+    for part in parts:
+        assert circle(part[:, 0], part[:, 1]).all()
+        assert (np.hypot(*np.diff(part, axis=0).T) > 0).all()   # no repeated points
+
+
 def test_keep_where_all_inside_returns_input_unchanged():
     p = np.array([[0., 0], [1, 1]]); out = keep_where(p, lambda x, y: np.ones_like(x, bool))
     assert len(out) == 1 and np.array_equal(out[0], p)

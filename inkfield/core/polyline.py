@@ -48,7 +48,8 @@ def keep_where(points, inside, tol: float = 0.01) -> list[np.ndarray]:
     That crossing is found by bisection: keep one end known to be inside and one known to be
     outside, test the midpoint, and replace whichever end has the same answer. Each test halves
     the gap, so after a handful of rounds the two ends are within tol of each other and the
-    boundary lies between them; the part is extended to their midpoint. All crossings of the line
+    boundary lies between them; the part is extended to the inside end, so every point of every
+    part is inside the region. All crossings of the line
     are bisected together, so each round costs one call to `inside`.
 
     Only the given points are tested: a segment whose two ends are both outside is dropped even
@@ -77,18 +78,19 @@ def keep_where(points, inside, tol: float = 0.01) -> list[np.ndarray]:
         middle_in = np.asarray(inside(middle[:, 0], middle[:, 1]), dtype=bool)[:, None]
         near = np.where(middle_in, middle, near)
         far = np.where(middle_in, far, middle)
-    cut_at = dict(zip(crossing.tolist(), (near + far) / 2))   # segment index -> boundary point
+    cut_at = dict(zip(crossing.tolist(), near))   # segment index -> boundary point, inside
 
     # Each run of inside points, from its first index to its last, plus the cut points that
-    # close it off on either side.
+    # close it off on either side. A cut that never moved off its vertex (the boundary is within
+    # tol of it) would only repeat that vertex, so it is left out.
     run_starts = np.flatnonzero(is_in & np.concatenate([[True], ~is_in[:-1]]))
     run_ends = np.flatnonzero(is_in & np.concatenate([~is_in[1:], [True]]))
     parts = []
     for first, last in zip(run_starts.tolist(), run_ends.tolist()):
         part = [points[first:last + 1]]
-        if first > 0:
+        if first > 0 and not np.array_equal(cut_at[first - 1], points[first]):
             part.insert(0, cut_at[first - 1][None, :])
-        if last < len(points) - 1:
+        if last < len(points) - 1 and not np.array_equal(cut_at[last], points[last]):
             part.append(cut_at[last][None, :])
         part = np.vstack(part)
         if len(part) >= 2:
