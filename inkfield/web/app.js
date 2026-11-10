@@ -5,8 +5,9 @@
    The server resolves and clamps whatever it is sent, so after each render the returned
    settings become the truth for the controls.
 
-   Safety: text from the server goes in with textContent, and the plot SVG is parsed with
-   DOMParser and stripped to the elements a plot may contain before it is put on the page. */
+   Safety: text from the server goes in with textContent, and every plot SVG (the preview and
+   the kept thumbnails) is parsed with DOMParser and stripped to the elements a plot may contain
+   before it is put on the page. */
 "use strict";
 
 const STORAGE_KEY = "inkfield.state.v1";
@@ -395,12 +396,26 @@ function clearTray() {
   for (const thumb of document.querySelectorAll("#tray .thumb")) thumb.remove();
 }
 
+/* A kept drawing for the tray: the kept file itself, fetched and cleaned like the preview, or a
+   "?" if it cannot be read. Its ids are dropped, since the preview carries the same ones. In
+   app.css its lines are drawn 1 px wide: a 0.3 mm pen would be a twelfth of a pixel here. */
+async function thumbImage(item) {
+  try {
+    const response = await fetch(item.url);
+    const plot = response.ok ? plotNode(await response.text()) : null;
+    if (plot) {
+      for (const node of [plot, ...plot.querySelectorAll("[id]")]) node.removeAttribute("id");
+      plot.setAttribute("role", "img");
+      plot.setAttribute("aria-label", `seed ${item.seed}`);
+      return plot;
+    }
+  } catch { /* no server: shown as unreadable */ }
+  return el("span", "unreadable", "?");
+}
+
 function addThumb(slug, item) {
   const thumb = el("div", "thumb");
   thumb.title = `seed ${item.seed}`;
-  const image = el("img");
-  image.alt = `seed ${item.seed}`;
-  image.src = item.url;
   const remove = el("button", "del", "×");
   remove.type = "button";
   remove.title = "Remove";
@@ -419,9 +434,10 @@ function addThumb(slug, item) {
     applySettings(item.settings);
     changed();
   });
-  thumb.append(image, remove);
+  thumb.append(remove);
   $("tray").append(thumb);
   updateEmpty();
+  thumbImage(item).then(image => thumb.prepend(image));
 }
 
 async function loadTray() {

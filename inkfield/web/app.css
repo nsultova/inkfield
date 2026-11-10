@@ -70,7 +70,9 @@ footer { grid-area: tray; border-top: 1px solid var(--line); display: flex; alig
 footer .cap { margin: 0 6px 0 0; writing-mode: vertical-rl; transform: rotate(180deg); }
 .thumb { position: relative; height: 76px; background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 0; flex: none; cursor: pointer; }
 .thumb:hover { border-color: var(--accent); }
-.thumb img { height: 100%; display: block; }
+.thumb svg { height: 100%; width: auto; display: block; }
+.thumb path { vector-effect: non-scaling-stroke; stroke-width: 1px; }
+.thumb .unreadable { display: flex; align-items: center; justify-content: center; width: 54px; height: 100%; color: var(--muted); }
 .thumb .del { position: absolute; top: -7px; right: -7px; width: 18px; height: 18px; border-radius: 50%; border: 0; padding: 0;
   background: var(--ink); color: var(--panel); font-size: 12px; line-height: 18px; display: none; }
 .thumb:hover .del { display: block; }
