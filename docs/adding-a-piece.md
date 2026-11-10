@@ -13,7 +13,9 @@ Claude session.
 
 ## 1. The contract
 
-A piece file contains these four things, in this order, and nothing else:
+A piece file contains these four things, in this order. Besides them it holds only its
+imports (the ones section 2 allows), constants, and the helper functions and classes that
+`generate` uses, as in the example below.
 
 1. **A module docstring.** It explains the idea before any code: what the reference image
    shows, what process makes it, the formula that came out of that, and what each control
@@ -21,10 +23,14 @@ A piece file contains these four things, in this order, and nothing else:
    alone.
 2. **`META`**, a `Meta` from `inkfield.core.piece`:
    - `slug`: the name used on the command line and in URLs, for example `"chemical-waves"`.
-     Letters, digits, `-` and `_` only. Two pieces may not share a slug.
+     Letters, digits, `-` and `_` only, and it must start with a letter or digit (kept
+     candidates are stored in a folder named after the slug, and other names are refused).
+     Two pieces may not share a slug.
    - `title` and `subtitle`: shown in the list of pieces.
-   - `framed_shape`: `"circle"` or `"rect"`. In "framed" composition the app gives the piece
-     the largest frame of this shape that fits inside the margin.
+   - `framed_shape`: `"circle"` or `"rect"`. In "framed" composition the app takes the
+     largest frame of this shape that fits inside the margin. With the border off, that is the
+     piece's frame; with the border on (the default), the piece gets the slightly smaller frame
+     inside the border's inner line.
    - `info`: a few sentences shown behind the *i* button in the app.
 3. **`PARAMS`**, a list of controls from `inkfield.core.controls`:
    - `Slider(name, label, min, max, step, default, unit="")`
@@ -50,7 +56,9 @@ the same strokes. That is what makes "same seed, same settings, same SVG" true.
 - **No border.** The border is a finishing effect with its own toggle.
 - **No imports other than `inkfield.core` and numpy.** (`math` and `dataclasses` from the
   standard library are tolerated.) No files, no network, nothing from `inkfield.server` or
-  `inkfield.web`. A test, `tests/test_import_rule.py`, checks this.
+  `inkfield.web`. A test, `tests/test_import_rule.py`, checks the imports only: it fails if a
+  piece imports anything outside that list. It cannot see what the code does, so keeping away
+  from files and the network (for example the built-in `open`) is up to you.
 - **No randomness other than `rng`.** No `random` module, no `np.random.…` functions, no time,
   no values that depend on the computer. Take every random number from the `rng` you were given.
   Draw them in a fixed order, so the same seed gives the same picture.
@@ -171,10 +179,10 @@ its idea.
 | `frame.Frame` | The region to fill. `shape`, `cx`, `cy`, `half_w`, `half_h`; `bbox` (x0, y0, x1, y1); `scale` (its smaller half-size, a length to measure sizes against); `contains(x, y)` (works on arrays); `inset(d)`; `sample(rng, n, shrink=1.0)` (n random points inside, as an (n, 2) array); `outline()` (the edge as a closed polyline). |
 | `noise.SmoothField(rng, wavelength, octaves=2)` | A smooth random vector field. Calling `field(x, y)` gives a push `(dx, dy)`, each between -1 and 1. Good for making regular shapes a little uneven. |
 | `contours.trace_zero(field, xs, ys, cells=None)` | Lines where a field sampled on a grid is zero (marching squares). `field[j, i]` is the value at `(xs[i], ys[j])`. |
-| `contours.trace_whole_numbers(phase, xs, ys, cells=None)` | Lines where a sampled field is a whole number (..., -1, 0, 1, ...), all in one pass. Needs a grid fine enough that the field changes by less than about 0.18 along a cell side. |
+| `contours.trace_whole_numbers(phase, xs, ys, cells=None)` | Lines where a sampled field is a whole number (..., -1, 0, 1, ...), all in one pass. Needs a grid fine enough that the field changes by less than about 0.18 over one cell-side length in its steepest direction. |
 | `polyline.length(points)` | Length of a polyline in mm. |
 | `polyline.densify(points, max_step)` | The same line with extra points, so no segment is longer than `max_step`. |
-| `polyline.keep_where(points, inside, tol=0.01)` | The parts of a line inside a region given as a test `inside(x, y)`; the cuts are placed exactly on the region's edge. Use it to cut lines at a boundary of the piece's own (not the frame: clipping to the frame is done for you). |
+| `polyline.keep_where(points, inside, tol=0.01)` | The parts of a line inside a region given as a test `inside(x, y)`; each cut lies within `tol` of the region's edge, at its inside end, so every kept point is inside. Use it to cut lines at a boundary of the piece's own (not the frame: clipping to the frame is done for you). |
 | `polyline.simplify(points, tol)` | Fewer points, same look (Ramer–Douglas–Peucker). |
 | `rng.make_rng(seed, stream="")` | How the app makes the `rng` it hands to `generate`. A piece never calls it; it is useful in tests: `make_rng(7, "piece")` gives the same `rng` as seed 7 in the app. |
 

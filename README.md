@@ -18,7 +18,8 @@ uv run inkfield
 
 This starts the studio at http://127.0.0.1:8000/ and opens it in your browser. Stop it with
 Ctrl+C. The server listens on 127.0.0.1 only, so other computers cannot reach it. Use
-`uv run inkfield serve --port 8001` for another port, and `--no-browser` to not open a browser.
+`uv run inkfield serve --port 8001` for another port, and `uv run inkfield serve --no-browser`
+to not open a browser.
 
 
 ## Rendering from the command line
@@ -87,7 +88,9 @@ candidates/   kept candidates, made when you keep one, ignored by git
 ```
 
 `pieces/`, `core/`, `finish/` and `page/` never import the server or the front end and never
-touch files or the network. A test checks this.
+touch files or the network. A test checks their imports: it fails if they import the server,
+the front end or a file or network module (`os`, `pathlib`, `socket`, …). It cannot see what
+the code does, so `open` and the like are kept out by review, not by the test.
 
 
 ## Adding a piece
