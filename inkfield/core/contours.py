@@ -181,9 +181,10 @@ def trace_whole_numbers(phase, xs, ys, cells=None) -> list[np.ndarray]:
     distance is exactly zero, while 2π·phase in floating point is not quite a multiple of 2π and
     its sine comes out as a tiny number of either sign.
 
-    This only works if the grid is fine enough: phase must change by less than about 0.18 across
-    a cell diagonal. Otherwise a cell crossed by a whole-number line can have a corner where
-    cos(2π·phase) <= 0, the cell is dropped, and the line gets a gap.
+    This only works if the grid is fine enough: phase must change by less than a quarter across
+    a cell diagonal, which is about 0.18 along a cell side. Otherwise a cell crossed by a
+    whole-number line can have a corner where cos(2π·phase) <= 0, the cell is dropped, and the
+    line gets a gap.
     """
     phase = np.asarray(phase, dtype=np.float64)
     offset = phase - np.round(phase)   # signed distance to the nearest whole number

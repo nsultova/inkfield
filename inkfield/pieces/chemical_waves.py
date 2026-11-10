@@ -46,10 +46,11 @@ has travelled".
       q = p + strength · F(p),   strength = min(unevenness · 1.2 · wavelength, 0.08 · W)
 
   where F is a smooth random field (see `inkfield.core.noise`) whose ripples have size
-  W = 0.9 · the frame's reference length. The cap 0.08 · W is there because pushing points
-  further than that, over ripples that short, would bend space so hard that it folds over
-  itself: two nearby page points would swap places, and rings would cross themselves. Below the
-  cap neighbouring points always keep their order. All formulas above use q.
+  W = 0.9 · the frame's reference length, which is about half the frame's width. The cap
+  0.08 · W is there because pushing points further than that, over ripples that short, would
+  bend space so hard that it folds over itself: two nearby page points would swap places, and
+  rings would cross themselves. Below the cap neighbouring points keep their order in practice
+  (this was checked by experiment at 0.08, not proved). All formulas above use q.
 
 The controls
 ------------
@@ -61,7 +62,9 @@ Elapsed time       how far waves have travelled, as a multiple of the frame's re
                    large ones fill the frame.
 Start stagger      how spread out the start delays are, as a fraction of the elapsed time.
                    Late starters get small territories hemmed in by early ones.
-Medium unevenness  how strongly the medium is distorted, relative to the wavelength.
+Medium unevenness  how strongly the medium is distorted, relative to the wavelength. The cap
+                   above limits it: with long wavelengths the cap is reached early, and the
+                   upper part of the slider changes nothing more.
 
 How the lines are drawn
 -----------------------
@@ -113,7 +116,7 @@ PARAMS = [
 ]
 
 PLACEMENT_SHRINK = 0.92     # pacemakers stay off the outer 8 % of the frame
-UNEVEN_REACH = 1.2          # at full unevenness, points move up to 1.2 wavelengths
+UNEVEN_REACH = 1.2          # push at full unevenness, in wavelengths, before UNEVEN_LIMIT caps it
 UNEVEN_SIZE = 0.9           # size of the medium's ripples, in frame reference lengths
 UNEVEN_LIMIT = 0.08         # largest push, in ripple sizes: more would fold space over itself
 LARGEST_CELL = 0.5          # grid cell size limit, mm
@@ -178,9 +181,10 @@ def place_pacemakers(frame, rng, count, spiral_share, stagger, elapsed_mm) -> li
 def uneven_medium(frame, rng, unevenness, wavelength):
     """measure(x, y) -> (qx, qy): where each page point lies in the uneven medium.
 
-    q = p + strength · F(p), with F a smooth random field whose ripples are about as large as the
-    frame. The strength grows with unevenness and wavelength but is capped at UNEVEN_LIMIT ripple
-    sizes so that space never folds. With strength 0 the medium is even and q is simply p.
+    q = p + strength · F(p), with F a smooth random field whose ripples are about half the frame's
+    width. The strength grows with unevenness and wavelength but is capped at UNEVEN_LIMIT ripple
+    sizes so that, in practice, space does not fold. With strength 0 the medium is even and q is
+    simply p.
     """
     ripple_size = UNEVEN_SIZE * frame.scale
     field = SmoothField(rng, wavelength=ripple_size)
