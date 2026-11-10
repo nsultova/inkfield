@@ -17,3 +17,8 @@ def test_traversal_is_refused(tmp_path, slug, cid):                    # Review 
     with pytest.raises(KeyError): st.path(slug, cid)
     with pytest.raises(KeyError): st.remove(slug, cid)
     assert (tmp_path / "secret.svg").exists()
+def test_remove_refuses_a_trash_folder_outside_the_store(tmp_path):
+    st = CandidateStore(tmp_path / "c"); a = st.save("p", 7, SVG)
+    (tmp_path / "elsewhere").mkdir(); (tmp_path / "c" / ".trash").symlink_to(tmp_path / "elsewhere")
+    with pytest.raises(KeyError): st.remove("p", a)
+    assert st.path("p", a).exists() and not list((tmp_path / "elsewhere").rglob("*.svg"))

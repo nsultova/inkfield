@@ -4,8 +4,13 @@ Request bodies come from a browser whose stored settings may be stale, so the bo
 plain dict: missing, extra or wrongly typed keys go to `render`, which makes them valid. Every
 error reaches the browser as {"error": "..."}. Endpoints are plain `def` so that rendering (up
 to a few seconds of CPU) runs in FastAPI's thread pool and the server keeps answering meanwhile.
+
+The studio answers only requests addressed to 127.0.0.1 or localhost. A web page elsewhere could
+otherwise point its own domain name at 127.0.0.1 ("DNS rebinding") and talk to the studio as if
+it were the studio's own page; such requests still carry that other name as their Host.
 """
 import logging
+import re
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -25,6 +30,10 @@ from inkfield.server.candidates import CandidateStore
 
 WEB = Path(__file__).resolve().parent.parent / "web"
 log = logging.getLogger("inkfield.server")
+LOCAL_HOST = re.compile(r"(127\.0\.0\.1|localhost)(:\d+)?")
+# A kept SVG is shown as a document of its own: no scripts, nothing fetched, inline styles only.
+SVG_HEADERS = {"X-Content-Type-Options": "nosniff",
+               "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'"}
 
 
 class Refused(Exception):
@@ -48,6 +57,13 @@ def create_app(candidates_dir: Path = Path("candidates"), pieces: dict | None = 
         "finish": {"info": FINISH_INFO, "params": describe(FINISH_PARAMS)},
         "page": {"params": describe(PAGE_PARAMS)},
     }
+
+    @app.middleware("http")
+    async def local_only(request: Request, call_next):
+        if not LOCAL_HOST.fullmatch(request.headers.get("host", "").lower()):
+            return JSONResponse({"error": "the studio answers only on 127.0.0.1 or localhost"},
+                                status_code=403)
+        return await call_next(request)
 
     @app.exception_handler(Refused)
     def refused(request: Request, error: Refused):
@@ -105,7 +121,7 @@ def create_app(candidates_dir: Path = Path("candidates"), pieces: dict | None = 
     @app.get("/api/candidates/{slug}/{cid}.svg")
     def candidate_file(slug: str, cid: str):
         try:
-            return FileResponse(store.path(slug, cid), media_type="image/svg+xml")
+            return FileResponse(store.path(slug, cid), media_type="image/svg+xml", headers=SVG_HEADERS)
         except KeyError:
             raise Refused(404, "no such candidate") from None
 
@@ -113,8 +129,11 @@ def create_app(candidates_dir: Path = Path("candidates"), pieces: dict | None = 
     def remove_candidate(slug: str, cid: str):
         try:
             store.remove(slug, cid)
-        except KeyError:
+        except (KeyError, FileNotFoundError):          # FileNotFoundError: two deletes raced
             raise Refused(404, "no such candidate") from None
+        except OSError as error:
+            log.exception("moving candidate %r to the trash failed", cid)
+            raise Refused(500, f"could not move the candidate to the trash: {error}") from None
         return Response(status_code=204)
 
     # Any other /api path is a 404 for every method; without this it would fall through to the

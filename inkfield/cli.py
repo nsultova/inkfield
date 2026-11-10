@@ -37,7 +37,7 @@ def _parser() -> argparse.ArgumentParser:
 
     draw = commands.add_parser("render", help="render one piece to an SVG file")
     draw.add_argument("slug")
-    draw.add_argument("--seed", default=0)
+    draw.add_argument("--seed", type=int, default=0)
     for name in ("composition", "format", "orientation", "pen"):
         draw.add_argument(f"--{name}", choices=PAGE_CHOICES[name])
     draw.add_argument("--margin", type=float, help="mm")

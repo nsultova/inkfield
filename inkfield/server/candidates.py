@@ -104,6 +104,7 @@ class CandidateStore:
         source = self.path(slug, cid)
         trash = self.root / TRASH / slug
         trash.mkdir(parents=True, exist_ok=True)
+        self._inside(trash)   # .trash could be a link to somewhere else
         target, number = trash / f"{cid}.svg", 2
         while target.exists():
             target, number = trash / f"{cid}~{number}.svg", number + 1
