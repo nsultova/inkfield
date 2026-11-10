@@ -1,0 +1,19 @@
+[project]
+name = "inkfield"
+version = "0.1.0"
+description = "A local browser studio for pen-plotter art."
+requires-python = ">=3.12"
+dependencies = ["numpy", "fastapi", "uvicorn"]
+
+[dependency-groups]
+dev = ["pytest", "httpx"]
+
+[project.scripts]
+inkfield = "inkfield.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
