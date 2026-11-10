@@ -62,6 +62,14 @@ def test_one_group_per_layer_in_ascending_order():
     labels = [g.get("{http://www.inkscape.org/namespaces/inkscape}label") for g in groups]
     assert labels == ["1", "3"] and [g.get("id") for g in groups] == ["layer1", "layer3"]
 
+def test_strokes_with_fewer_than_two_points_are_skipped():
+    strokes = [Stroke(np.zeros((0, 2))), Stroke(np.array([[30., 40]])), Stroke(np.array([[30., 40], [130, 40]]))]
+    root = ET.fromstring(to_svg(strokes, Page(210, 297, 16), 0.3, SET))
+    paths = [el.get("d") for el in root.iter("{http://www.w3.org/2000/svg}path")]
+    s = plot_stats(strokes)
+    assert paths == ["M30.00 40.00L130.00 40.00"] and len(paths) == s["strokes"] == 1
+    assert s["drawn_m"] == pytest.approx(0.1) and s["travel_m"] == pytest.approx(0.05)
+
 @pytest.mark.parametrize("text", [
     "not xml at all",
     '<svg xmlns="http://www.w3.org/2000/svg"><g/></svg>',

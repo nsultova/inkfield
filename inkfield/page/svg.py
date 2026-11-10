@@ -18,6 +18,8 @@ from xml.sax.saxutils import escape
 
 import numpy as np
 
+from inkfield.page.stats import drawable
+
 SVG_NS = "http://www.w3.org/2000/svg"
 INKSCAPE_NS = "http://www.inkscape.org/namespaces/inkscape"
 INKFIELD_NS = "https://inkfield.invalid/ns"
@@ -26,7 +28,7 @@ INKFIELD_NS = "https://inkfield.invalid/ns"
 def to_svg(strokes, page, pen_mm: float, settings: dict) -> str:
     width, height = number(page.width), number(page.height)
     by_layer = {}
-    for stroke in strokes:
+    for stroke in drawable(strokes):
         by_layer.setdefault(stroke.layer, []).append(path_data(stroke.points))
     lines = [
         f'<svg xmlns="{SVG_NS}" xmlns:inkscape="{INKSCAPE_NS}"',
