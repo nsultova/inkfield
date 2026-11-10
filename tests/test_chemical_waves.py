@@ -4,7 +4,7 @@ import pytest
 from inkfield.core.controls import resolve
 from inkfield.core.frame import Frame
 from inkfield.core.rng import make_rng
-from inkfield.pieces.chemical_waves import PARAMS, generate, uneven_medium
+from inkfield.pieces.chemical_waves import PARAMS, generate, place_pacemakers, uneven_medium
 
 FRAME = Frame("circle", 105, 148.5, 86, 86)
 D = resolve(PARAMS, None)
@@ -23,6 +23,11 @@ def test_strokes_are_well_formed():
 @pytest.mark.parametrize("name,value", [("sources", 3), ("spirals", 1.0), ("wavelength", 9), ("elapsed", 1.0), ("stagger", 0.1), ("uneven", 0.8)])
 def test_every_control_changes_the_picture(name, value):
     a, b = run(), run(**{name: value}); assert len(a) != len(b) or not np.array_equal(pts(a), pts(b))
+
+def test_adding_a_pacemaker_leaves_the_others_as_they_were():
+    def place(count): return place_pacemakers(FRAME, make_rng(7, "piece"), count, 0.5, 0.7, 40.0)
+    nine, ten = place(9), place(10)
+    assert len(nine) == 9 and len(ten) == 10 and ten[:9] == nine   # position, delay, kind, turn, offset
 
 def test_single_target_gives_concentric_rings_one_wavelength_apart():
     s = run(sources=1, spirals=0, uneven=0, stagger=0, elapsed=0.5, wavelength=5)

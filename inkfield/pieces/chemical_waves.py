@@ -46,15 +46,15 @@ has travelled".
       q = p + strength · F(p),   strength = min(unevenness · 1.2 · wavelength, 0.08 · W)
 
   where F is a smooth random field (see `inkfield.core.noise`) whose ripples have size
-  W = 0.9 · the frame's reference length, which is about half the frame's width. The cap
-  0.08 · W is there because pushing points further than that, over ripples that short, would
-  bend space so hard that it folds over itself: two nearby page points would swap places, and
-  rings would cross themselves. Below the cap neighbouring points keep their order in practice
-  (this was checked by experiment at 0.08, not proved). All formulas above use q.
+  W = 0.9 · the frame's reference length (half the frame's shorter side). The cap is there
+  because pushing points too far, over ripples that short, bends space so hard that it folds
+  over itself: two nearby page points would swap places, and rings would cross themselves. The
+  value 0.08 was found by experiment: below it neighbouring points keep their order in practice
+  (checked, not proved). All formulas above use q.
 
 The controls
 ------------
-Pacemakers         how many wave sources.
+Pacemakers         how many wave sources. Adding one leaves the others as they were.
 Spiral share       the chance that a source is a spiral rather than a target.
 Wavelength         the distance between successive fronts, in mm.
 Elapsed time       how far waves have travelled, as a multiple of the frame's reference length
@@ -115,10 +115,11 @@ PARAMS = [
     Slider("uneven",     "Medium unevenness", 0,    1,   0.01, 0.20),
 ]
 
+MAX_SOURCES = next(int(control.max) for control in PARAMS if control.name == "sources")
 PLACEMENT_SHRINK = 0.92     # pacemakers stay off the outer 8 % of the frame
 UNEVEN_REACH = 1.2          # push at full unevenness, in wavelengths, before UNEVEN_LIMIT caps it
 UNEVEN_SIZE = 0.9           # size of the medium's ripples, in frame reference lengths
-UNEVEN_LIMIT = 0.08         # largest push, in ripple sizes: more would fold space over itself
+UNEVEN_LIMIT = 0.08         # largest push, in ripple sizes; the value was found by experiment
 LARGEST_CELL = 0.5          # grid cell size limit, mm
 CELLS_PER_WAVELENGTH = 8
 CORE_RADIUS = 0.35          # spiral arms stop this many wavelengths from the core
@@ -167,9 +168,13 @@ def place_pacemakers(frame, rng, count, spiral_share, stagger, elapsed_mm) -> li
 
     delay is uniform in [0, stagger · elapsed); a pacemaker is a spiral with probability
     spiral_share; it winds one way or the other with equal chance; its arm offset is uniform.
+
+    Both are drawn for MAX_SOURCES pacemakers and only the first `count` are used, so the rng
+    is left in the same state for any count: adding a pacemaker leaves the others, and the
+    medium drawn after them, as they were.
     """
-    positions = frame.sample(rng, count, shrink=PLACEMENT_SHRINK)
-    draws = rng.random((count, 4))
+    positions = frame.sample(rng, MAX_SOURCES, shrink=PLACEMENT_SHRINK)[:count]
+    draws = rng.random((MAX_SOURCES, 4))[:count]
     return [Pacemaker(x=float(x), y=float(y),
                       delay=float(u_delay * stagger * elapsed_mm),
                       is_spiral=bool(u_kind < spiral_share),
@@ -181,10 +186,10 @@ def place_pacemakers(frame, rng, count, spiral_share, stagger, elapsed_mm) -> li
 def uneven_medium(frame, rng, unevenness, wavelength):
     """measure(x, y) -> (qx, qy): where each page point lies in the uneven medium.
 
-    q = p + strength · F(p), with F a smooth random field whose ripples are about half the frame's
-    width. The strength grows with unevenness and wavelength but is capped at UNEVEN_LIMIT ripple
-    sizes so that, in practice, space does not fold. With strength 0 the medium is even and q is
-    simply p.
+    q = p + strength · F(p), with F a smooth random field whose ripples are 0.9 × the frame's
+    reference length (half its shorter side). The strength grows with unevenness and wavelength
+    but is capped at UNEVEN_LIMIT ripple sizes so that, in practice, space does not fold.
+    With strength 0 the medium is even and q is simply p.
     """
     ripple_size = UNEVEN_SIZE * frame.scale
     field = SmoothField(rng, wavelength=ripple_size)
