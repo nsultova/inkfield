@@ -11,10 +11,15 @@ import zlib
 import numpy as np
 
 
-def make_rng(seed, stream: str = "") -> np.random.Generator:
+def seed_number(seed) -> int:
+    """The seed as the whole number 0 … 2**32 − 1 that `make_rng` actually uses."""
     try:
         seed = int(float(seed))
     except (TypeError, ValueError, OverflowError):
         seed = 0
-    seed %= 2**32
+    return seed % 2**32
+
+
+def make_rng(seed, stream: str = "") -> np.random.Generator:
+    seed = seed_number(seed)
     return np.random.default_rng(np.random.SeedSequence([seed, zlib.crc32(stream.encode())]))

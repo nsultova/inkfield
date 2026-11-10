@@ -1,3 +1,5 @@
+import pytest
+
 from inkfield.core.controls import Choice, Slider, Toggle, describe, resolve
 from inkfield.core.rng import make_rng
 
@@ -15,3 +17,8 @@ def test_rng_seed_coercion():
     assert make_rng("").random() == make_rng(0).random()
     assert make_rng(-1).random() == make_rng(2**32 - 1).random()
     assert make_rng(7, "a").random() != make_rng(7, "b").random()
+
+
+@pytest.mark.parametrize("values", [[1, 2], "abc", 7, 3.5, True, ("n", 3)])
+def test_values_that_are_not_a_dict_give_the_defaults(values):
+    assert resolve(C, values) == {"n": 9, "w": 5.5, "fmt": "A4", "b": True}

@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from inkfield.core.polyline import densify, keep_where, length, simplify
 
@@ -37,3 +38,18 @@ def test_keep_where_all_inside_returns_input_unchanged():
 
 def test_simplify_drops_collinear_keeps_corners():
     p = np.array([[0., 0], [1, 0.001], [2, 0], [2, 2]]); assert simplify(p, 0.01).tolist() == [[0, 0], [2, 0], [2, 2]]
+
+
+@pytest.mark.parametrize("closed", [False, True])
+def test_simplify_keeps_every_point_within_tol(closed):
+    rng = np.random.default_rng(4)
+    angle = np.linspace(0, 2 * np.pi, 2000)
+    p = np.column_stack([np.cos(angle), np.sin(angle)]) * 50 + rng.normal(0, 0.05, (2000, 2))
+    p = np.vstack([p, p[:1]]) if closed else p[:1500]
+    out = simplify(p, 0.02)
+    assert np.array_equal(out[0], p[0]) and np.array_equal(out[-1], p[-1]) and 2 < len(out) < len(p)
+    nearest = np.full(len(p), np.inf)
+    for a, b in zip(out[:-1], out[1:]):
+        ab = b - a; t = np.clip((p - a) @ ab / (ab @ ab), 0, 1)
+        nearest = np.minimum(nearest, np.hypot(*(p - a - t[:, None] * ab).T))
+    assert nearest.max() <= 0.02

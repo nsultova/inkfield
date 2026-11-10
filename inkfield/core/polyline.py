@@ -109,38 +109,53 @@ def simplify(points, tol: float) -> np.ndarray:
     The first and last points are always kept, so a closed line stays closed. (For a closed line
     the first "segment" has zero length; distance to it is just distance to that point, so the
     furthest point of the loop is kept and the halves proceed as usual.)
+
+    For speed, all the spans waiting to be checked are handled together, one round per level of
+    splitting, instead of one at a time: the points of every span go into one flat list, each
+    tagged with its span, so a round costs a few numpy calls however many spans there are. Each
+    span is still decided only by its own points, so the result is the same as one at a time.
     """
     points = np.asarray(points, dtype=np.float64)
     if len(points) < 3:
         return points.copy()
     keep = np.zeros(len(points), dtype=bool)
     keep[0] = keep[-1] = True
-    pending = [(0, len(points) - 1)]
-    while pending:
-        first, last = pending.pop()
-        if last - first < 2:
-            continue
-        between = points[first + 1:last]
-        distance = _distance_to_segment(between, points[first], points[last])
-        furthest = int(np.argmax(distance))
-        if distance[furthest] > tol:
-            split = first + 1 + furthest
-            keep[split] = True
-            pending += [(first, split), (split, last)]
+    first, last = np.array([0]), np.array([len(points) - 1])   # the spans still to check
+    while len(first):
+        # Every point strictly between the ends of each span, tagged with the span it is in.
+        count = last - first - 1                                 # at least 1 for every span
+        span = np.repeat(np.arange(len(first)), count)
+        span_begins = np.cumsum(count) - count                   # where each span starts in the list
+        index = first[span] + 1 + np.arange(len(span)) - span_begins[span]
+        distance = _distance_to_segment(points[index], points[first[span]], points[last[span]])
+
+        # The furthest point of each span (the earliest one on a tie, as argmax would pick).
+        is_furthest = distance == np.maximum.reduceat(distance, span_begins)[span]
+        candidates = np.flatnonzero(is_furthest)
+        furthest = candidates[np.diff(span[candidates], prepend=-1) > 0]
+
+        # Keep the ones further than tol; each splits its span into two new spans.
+        split = furthest[distance[furthest] > tol]
+        keep[index[split]] = True
+        first = np.concatenate([first[span[split]], index[split]])
+        last = np.concatenate([index[split], last[span[split]]])
+        has_points_between = last - first >= 2
+        first, last = first[has_points_between], last[has_points_between]
     return points[keep]
 
 
 def _distance_to_segment(p, a, b) -> np.ndarray:
     """Distance from each point in p to the segment from a to b (not the infinite line).
 
+    a and b hold one segment end per point, so every point can have its own segment.
     Project each point onto the line through a and b, as a fraction t of the way from a to b,
-    clamp t to [0, 1] so the foot stays on the segment, and measure to that foot.
+    clamp t to [0, 1] so the foot stays on the segment, and measure to that foot. A segment of
+    zero length has its foot at a.
     """
     ab = b - a
-    ab_squared = ab @ ab
-    if ab_squared == 0:
-        t = np.zeros(len(p))
-    else:
-        t = np.clip((p - a) @ ab / ab_squared, 0, 1)
+    ab_squared = (ab * ab).sum(axis=1)
+    along = ((p - a) * ab).sum(axis=1)
+    t = np.divide(along, ab_squared, out=np.zeros_like(along), where=ab_squared > 0)
+    t = np.clip(t, 0, 1)
     foot = a + t[:, None] * ab
     return np.hypot(*(p - foot).T)

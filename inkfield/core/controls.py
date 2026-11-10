@@ -67,9 +67,11 @@ def resolve(controls: list, values: dict | None) -> dict:
     """A complete, valid settings dict keyed by control name.
 
     Missing or unreadable values fall back to the control's default; keys that no control
-    declares are dropped.
+    declares are dropped. Values that are not a dict at all (a list or a number from an old
+    file or stale browser storage) count as empty, so every setting takes its default.
     """
-    values = values or {}
+    if not isinstance(values, dict):
+        values = {}
     settings = {}
     for control in controls:
         raw = values.get(control.name, control.default)
