@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio mockup</title>
+<style>
+  :root {
+    --desk: #e9e6df;
+    --panel: #f7f5f0;
+    --line: #d9d5cb;
+    --ink: #1d1f24;
+    --muted: #7a776f;
+    --accent: #c8451b;
+    --paper: #fffefb;
+    --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --desk: #17181a; --panel: #1f2023; --line: #303236;
+      --ink: #e8e6e1; --muted: #8d8a83; --accent: #ef6a3c; --paper: #f6f3ea;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink); background: var(--desk);
+    display: grid;
+    grid-template: 44px 1fr 96px / 168px 1fr 292px;
+    grid-template-areas: "top top top" "rail stage panel" "rail tray panel";
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  /* top bar */
+  header {
+    grid-area: top; display: flex; align-items: center; gap: 14px;
+    padding: 0 14px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .mark { font-weight: 650; letter-spacing: .02em; }
+  .mark span { color: var(--accent); }
+  .mocktag { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 1px 8px; }
+  .spacer { flex: 1; }
+  .seed { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+  .seed input {
+    width: 76px; font: 12px var(--mono); color: var(--ink); background: transparent;
+    border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px;
+  }
+  .btn {
+    border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 5px 11px;
+  }
+  .btn:hover { border-color: var(--muted); }
+  .btn.primary { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+  .btn.icon { padding: 5px 8px; }
+
+  /* left rail */
+  nav { grid-area: rail; background: var(--panel); border-right: 1px solid var(--line); padding: 12px 8px; overflow: auto; }
+  .cap { font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin: 4px 8px 8px; }
+  .piece { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 7px 8px; border-radius: 6px; }
+  .piece small { display: block; color: var(--muted); font-size: 11px; }
+  .piece.on { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+  .piece.ghost { opacity: .45; cursor: default; }
+
+  /* stage */
+  main { grid-area: stage; position: relative; min: 0; overflow: hidden; display: grid; place-items: center; padding: 22px; }
+  #paper { background: var(--paper); box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 10px 30px rgba(0,0,0,.14); display: block; }
+  .stats {
+    position: absolute; left: 0; right: 0; bottom: 4px; text-align: center;
+    font: 11px var(--mono); color: var(--muted);
+  }
+
+  /* candidates tray */
+  footer { grid-area: tray; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 10px; padding: 8px 14px; overflow-x: auto; }
+  footer .cap { margin: 0 6px 0 0; writing-mode: vertical-rl; transform: rotate(180deg); }
+  .thumb { height: 76px; background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 0; flex: none; }
+  .thumb { position: relative; cursor: pointer; }
+  .thumb:hover { border-color: var(--accent); }
+  .thumb .del { position: absolute; top: -7px; right: -7px; width: 18px; height: 18px; border-radius: 50%; border: 0; padding: 0;
+    background: var(--ink); color: var(--panel); font-size: 12px; line-height: 18px; display: none; }
+  .thumb:hover .del { display: block; }
+  footer { padding-top: 12px; overflow-y: hidden; }
+  .thumb svg { height: 100%; display: block; }
+  .empty { color: var(--muted); font-size: 12px; }
+
+  /* right panel */
+  aside { grid-area: panel; background: var(--panel); border-left: 1px solid var(--line); overflow: auto; padding: 4px 16px 24px; }
+  section { padding: 14px 0 6px; border-bottom: 1px solid var(--line); }
+  section:last-child { border: 0; }
+  .sechead { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .sechead h2 { font-size: 13px; margin: 0; font-weight: 600; flex: 1; }
+  .info-btn {
+    width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--muted); background: none;
+    font: italic 600 11px Georgia, serif; color: var(--muted); padding: 0; line-height: 1;
+  }
+  .info-btn[aria-expanded="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+  .info { display: none; font-size: 12px; color: var(--muted); margin: 0 0 12px; padding: 9px 11px; border-left: 2px solid var(--accent); background: color-mix(in srgb, var(--ink) 4%, transparent); }
+  .info.open { display: block; }
+  .info code { font: 11px var(--mono); color: var(--ink); }
+
+  .row { margin-bottom: 11px; }
+  .row .lbl { display: flex; justify-content: space-between; margin-bottom: 2px; }
+  .row .lbl output { font: 11.5px var(--mono); color: var(--muted); }
+  input[type=range] { width: 100%; margin: 0; height: 16px; accent-color: var(--accent); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { flex: 1; border: 0; background: none; padding: 4px 0; border-right: 1px solid var(--line); font-size: 12px; }
+  .seg button:last-child { border: 0; }
+  .seg button.on { background: var(--ink); color: var(--panel); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="mark">ink<span>field</span></div>
+  <span class="mocktag">mockup · working title</span>
+  <div class="spacer"></div>
+  <label class="seed">seed <input id="seed" type="number" value="7"></label>
+  <button class="btn icon" id="dice" title="New random seed">↻</button>
+  <button class="btn" id="keep">Keep candidate</button>
+  <button class="btn primary" id="export">Export SVG</button>
+</header>
+
+<nav>
+  <div class="cap">Pieces</div>
+  <button class="piece on">Chemical waves<small>Belousov–Zhabotinsky</small></button>
+  <button class="piece ghost">Next piece…<small>from your next image</small></button>
+  <button class="piece ghost">Drawing → hatch<small>flower, hands, …</small></button>
+</nav>
+
+<main id="stage">
+  <svg id="paper" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div class="stats" id="stats"></div>
+</main>
+
+<footer id="tray">
+  <div class="cap">Kept</div>
+  <span class="empty" id="empty">Nothing kept yet. "Keep candidate" pins the current plot here; click a thumbnail to return to it, × to remove it.</span>
+</footer>
+
+<aside id="panel"></aside>
+
+<script>
+/* ---------- controls are declared as data; the panel is built from this ---------- */
+const SECTIONS = [
+  { title: "Chemical waves", info:
+    `Each <b>pacemaker</b> starts emitting waves at its own moment. A point in the dish is claimed by whichever wave reaches it first, so the medium is described by one field: <code>arrival(x) = min(delay + distance)</code>. Pen lines are the level curves of that field, one per <b>wavelength</b>. Spirals add a twist proportional to the angle around their core. Where two wave systems meet they cancel, which gives the cusped seams.`,
+    rows: [
+      { k: "sources", label: "Pacemakers", min: 1, max: 24, step: 1, v: 9 },
+      { k: "spirals", label: "Spiral share", min: 0, max: 1, step: .01, v: .3 },
+      { k: "lambda",  label: "Wavelength", min: 2, max: 14, step: .1, v: 5.5, unit: " mm" },
+      { k: "age",     label: "Elapsed time", min: .08, max: 2, step: .01, v: .42 },
+      { k: "stagger", label: "Start stagger", min: 0, max: 1, step: .01, v: .7 },
+      { k: "uneven",  label: "Medium unevenness", min: 0, max: 1, step: .01, v: .2 },
+    ]},
+  { title: "Finishing", info:
+    `Effects that work on any piece, because every piece hands over plain pen strokes.`,
+    rows: [
+      { k: "wobble", label: "Hand wobble", min: 0, max: 1, step: .01, v: 0 },
+      { k: "rim", label: "Border", seg: ["on", "off"], v: "on" },
+    ]},
+  { title: "Page", rows: [
+      { k: "frame", label: "Composition", seg: ["framed", "fill page"], v: "framed" },
+      { k: "format", label: "Format", seg: ["A4", "A3", "Square"], v: "A4" },
+      { k: "orient", label: "Orientation", seg: ["portrait", "landscape"], v: "portrait" },
+      { k: "margin", label: "Margin", min: 5, max: 40, step: 1, v: 16, unit: " mm" },
+      { k: "pen", label: "Pen", seg: ["0.2", "0.3", "0.5", "0.8"], v: "0.3" },
+    ]},
+];
+const S = {};
+const panel = document.getElementById("panel");
+const widgets = {};
+
+for (const sec of SECTIONS) {
+  const el = document.createElement("section");
+  el.innerHTML = `<div class="sechead"><h2>${sec.title}</h2>${sec.info ? '<button class="info-btn" aria-expanded="false" title="About">i</button>' : ""}</div>${sec.info ? `<p class="info">${sec.info}</p>` : ""}`;
+  const ib = el.querySelector(".info-btn");
+  if (ib) ib.onclick = () => { const open = el.querySelector(".info").classList.toggle("open"); ib.setAttribute("aria-expanded", open); };
+  for (const r of sec.rows) {
+    S[r.k] = r.v;
+    const row = document.createElement("div"); row.className = "row";
+    if (r.seg) {
+      row.innerHTML = `<div class="lbl"><span>${r.label}</span></div><div class="seg">${r.seg.map(o => `<button data-v="${o}">${o}</button>`).join("")}</div>`;
+      const sync = () => row.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === S[r.k]));
+      row.querySelectorAll("button").forEach(b => b.onclick = () => { S[r.k] = b.dataset.v; sync(); schedule(); });
+      widgets[r.k] = sync; sync();
+    } else {
+      row.innerHTML = `<div class="lbl"><span>${r.label}</span><output></output></div><input type="range" min="${r.min}" max="${r.max}" step="${r.step}">`;
+      const inp = row.querySelector("input"), out = row.querySelector("output");
+      const sync = () => { inp.value = S[r.k]; out.textContent = (+S[r.k]).toFixed(r.step < 1 ? (r.step < .1 ? 2 : 1) : 0) + (r.unit || ""); };
+      inp.oninput = () => { S[r.k] = +inp.value; sync(); schedule(); };
+      widgets[r.k] = sync; sync();
+    }
+    el.appendChild(row);
+  }
+  panel.appendChild(el);
+}
+
+/* ---------- the piece (throwaway sketch of the arrival-time idea) ---------- */
+function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+function pageSize() {
+  let [w, h] = { A4: [210, 297], A3: [297, 420], Square: [250, 250] }[S.format];
+  if (S.orient === "landscape") [w, h] = [h, w];
+  return [w, h];
+}
+
+function generate(seed) {
+  const [W, H] = pageSize();
+  const cx = W / 2, cy = H / 2;
+  const R = Math.min(W, H) / 2 - S.margin;
+  const rimGap = S.rim === "on" ? R * 0.035 : 0;
+  const Rd = R - rimGap;                     // radius of the drawable medium
+  const rand = rng(seed * 7919 + 13);
+  const lam = S.lambda, age = S.age * Rd;
+
+  // region the medium occupies: a dish, or the whole page inside the margin
+  const fill = S.frame === "fill page";
+  const bx = fill ? S.margin + rimGap : cx - Rd, by = fill ? S.margin + rimGap : cy - Rd;
+  const bw = fill ? W - 2 * bx : 2 * Rd, bh = fill ? H - 2 * by : 2 * Rd;
+  const inside = fill ? (x, y) => x >= bx && x <= bx + bw && y >= by && y <= by + bh
+                      : (x, y) => Math.hypot(x - cx, y - cy) <= Rd;
+  const src = [];
+  for (let i = 0; i < S.sources; i++) {
+    const r1 = rand(), r2 = rand();
+    const a = r1 * 6.2832, r = Math.sqrt(r2) * Rd * 0.92;
+    src.push({ x: fill ? bx + r1 * bw : cx + r * Math.cos(a), y: fill ? by + r2 * bh : cy + r * Math.sin(a),
+      delay: rand() * S.stagger * age, spiral: rand() < S.spirals,
+      chir: rand() < .5 ? 1 : -1, ph: rand() });
+  }
+  const wa = S.uneven * lam * 1.2, k1 = 6.2832 / (Rd * .9), k2 = 6.2832 / (Rd * .47);
+  const p1 = rand() * 6.28, p2 = rand() * 6.28, p3 = rand() * 6.28, p4 = rand() * 6.28;
+
+  const cell = Math.min(bw, bh) / 280, nx = Math.ceil(bw / cell), ny = Math.ceil(bh / cell);
+  const x0 = bx, y0 = by, dx = bw / nx, dy = bh / ny, m = nx + 1, my = ny + 1;
+  const F = new Float32Array(m * my), G = new Float32Array(m * my), UB = new Float32Array(m * my);
+  const WN = new Int16Array(m * my);
+  for (let j = 0; j < my; j++) for (let i = 0; i < m; i++) {
+    const px = x0 + i * dx, py = y0 + j * dy;
+    const qx = px + wa * (Math.sin(k1 * py + p1) + .5 * Math.sin(k2 * py + p2));
+    const qy = py + wa * (Math.sin(k1 * px + p3) + .5 * Math.sin(k2 * px + p4));
+    let best = 1e9, bi = 0;
+    for (let s = 0; s < src.length; s++) {
+      const t = src[s].delay + Math.hypot(qx - src[s].x, qy - src[s].y);
+      if (t < best) { best = t; bi = s; }
+    }
+    const s = src[bi], ub = (age - best) / lam;
+    let u = ub;
+    if (s.spiral) u += s.chir * Math.atan2(qy - s.y, qx - s.x) / 6.2832 + s.ph;
+    const id = j * m + i;
+    F[id] = Math.sin(6.2832 * u); G[id] = Math.cos(6.2832 * u); UB[id] = ub; WN[id] = s.spiral ? bi + 1 : 0;
+  }
+
+  // marching squares on F = 0 (only the G > 0 crossing: one line per wavelength)
+  const TAB = { 1: [[3, 0]], 2: [[0, 1]], 3: [[3, 1]], 4: [[1, 2]], 5: [[3, 0], [1, 2]], 6: [[0, 2]], 7: [[3, 2]],
+    8: [[2, 3]], 9: [[0, 2]], 10: [[0, 1], [2, 3]], 11: [[1, 2]], 12: [[3, 1]], 13: [[0, 1]], 14: [[3, 0]] };
+  const segs = [], at = new Map();
+  const push = (key, si) => { const l = at.get(key); l ? l.push(si) : at.set(key, [si]); };
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const a = j * m + i, b = a + 1, c = a + m + 1, e = a + m;
+    if (G[a] <= 0 || G[b] <= 0 || G[c] <= 0 || G[e] <= 0) continue;
+    if (UB[a] < -.5 || UB[b] < -.5 || UB[c] < -.5 || UB[e] < -.5) continue;
+    if ((WN[a] | WN[b] | WN[c] | WN[e]) && !(WN[a] === WN[b] && WN[b] === WN[c] && WN[c] === WN[e])) continue;
+    const idx = (F[a] > 0) | (F[b] > 0) << 1 | (F[c] > 0) << 2 | (F[e] > 0) << 3;
+    const t = TAB[idx]; if (!t) continue;
+    const X = x0 + i * dx, Y = y0 + j * dy;
+    const edge = q => {
+      if (q === 0) { const f = F[a] / (F[a] - F[b]); return [a * 2, X + f * dx, Y]; }
+      if (q === 1) { const f = F[b] / (F[b] - F[c]); return [b * 2 + 1, X + dx, Y + f * dy]; }
+      if (q === 2) { const f = F[e] / (F[e] - F[c]); return [e * 2, X + f * dx, Y + dy]; }
+      const f = F[a] / (F[a] - F[e]); return [a * 2 + 1, X, Y + f * dy];
+    };
+    for (const [qa, qb] of t) {
+      const A = edge(qa), B = edge(qb), si = segs.length;
+      segs.push([A, B]); push(A[0], si); push(B[0], si);
+    }
+  }
+  // chain segments into polylines
+  const used = new Uint8Array(segs.length), lines = [];
+  const walk = (key, out) => {
+    for (;;) {
+      const l = at.get(key); let nx = -1;
+      for (const si of l) if (!used[si]) { nx = si; break; }
+      if (nx < 0) return;
+      used[nx] = 1;
+      const [A, B] = segs[nx], far = A[0] === key ? B : A;
+      out.push([far[1], far[2]]); key = far[0];
+    }
+  };
+  for (let si = 0; si < segs.length; si++) {
+    if (used[si]) continue; used[si] = 1;
+    const [A, B] = segs[si];
+    const fwd = [[B[1], B[2]]]; walk(B[0], fwd);
+    const back = [[A[1], A[2]]]; walk(A[0], back);
+    lines.push(back.reverse().concat(fwd));
+  }
+  // finishing: wobble, then clip to the dish
+  const wb = S.wobble * 1.1, out = [];
+  for (const ln of lines) {
+    let cur = [];
+    for (let [x, y] of ln) {
+      if (wb) { x += wb * Math.sin(x * .83 + y * 1.31); y += wb * Math.cos(x * 1.07 - y * .71); }
+      if (inside(x, y)) cur.push([x, y]);
+      else { if (cur.length > 2) out.push(cur); cur = []; }
+    }
+    if (cur.length > 2) out.push(cur);
+  }
+  return { W, H, cx, cy, R, Rd, fill, bx, by, bw, bh, lines: out };
+}
+
+/* ---------- preview / export ---------- */
+const paper = document.getElementById("paper"), stage = document.getElementById("stage");
+let last = null;
+
+function svgBody(g, forExport) {
+  let len = 0;
+  const d = g.lines.map(l => {
+    for (let i = 1; i < l.length; i++) len += Math.hypot(l[i][0] - l[i - 1][0], l[i][1] - l[i - 1][1]);
+    return "M" + l.map(p => p[0].toFixed(2) + " " + p[1].toFixed(2)).join("L");
+  }).join("");
+  let rim = "";
+  if (S.rim === "on") {
+    if (g.fill) {
+      const m = S.margin;
+      rim = `<rect x="${g.bx.toFixed(2)}" y="${g.by.toFixed(2)}" width="${g.bw.toFixed(2)}" height="${g.bh.toFixed(2)}"/><rect x="${m}" y="${m}" width="${g.W - 2 * m}" height="${g.H - 2 * m}"/>`;
+      len += 2 * (g.bw + g.bh) + 2 * (g.W + g.H - 4 * m);
+    } else {
+      rim = `<circle cx="${g.cx}" cy="${g.cy}" r="${g.Rd.toFixed(2)}"/><circle cx="${g.cx}" cy="${g.cy}" r="${g.R.toFixed(2)}"/>`;
+      len += 6.2832 * (g.R + g.Rd);
+    }
+  }
+  const guide = forExport ? "" : `<rect x="${S.margin}" y="${S.margin}" width="${g.W - 2 * S.margin}" height="${g.H - 2 * S.margin}" fill="none" stroke="#c8451b" stroke-opacity=".28" stroke-width=".25" stroke-dasharray="1.5 1.5"/>`;
+  g.len = len; g.count = g.lines.length + (S.rim === "on" ? 2 : 0);
+  return `${guide}<g fill="none" stroke="#15171c" stroke-width="${S.pen}" stroke-linecap="round" stroke-linejoin="round">${rim}<path d="${d}"/></g>`;
+}
+
+function fit() {
+  if (!last) return;
+  const k = Math.min((stage.clientWidth - 44) / last.W, (stage.clientHeight - 60) / last.H);
+  paper.style.width = last.W * k + "px"; paper.style.height = last.H * k + "px";
+}
+
+function render() {
+  const t0 = performance.now();
+  const g = generate(+document.getElementById("seed").value || 0);
+  last = g;
+  paper.setAttribute("viewBox", `0 0 ${g.W} ${g.H}`);
+  paper.innerHTML = svgBody(g, false);
+  fit();
+  const mins = (g.len / 28 + g.count * .45) / 60;
+  document.getElementById("stats").textContent =
+    `${g.W}×${g.H} mm · ${g.count} strokes · ${(g.len / 1000).toFixed(1)} m of line · ≈ ${mins.toFixed(0)} min to plot · ${(performance.now() - t0).toFixed(0)} ms`;
+}
+let pending = false;
+function schedule() { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; render(); }); }
+addEventListener("resize", fit);
+
+const seedEl = document.getElementById("seed");
+seedEl.oninput = schedule;
+document.getElementById("dice").onclick = () => { seedEl.value = Math.floor(Math.random() * 99999); schedule(); };
+
+document.getElementById("keep").onclick = () => {
+  document.getElementById("empty")?.remove();
+  const snap = { ...S }, seed = seedEl.value;
+  const b = document.createElement("div"); b.className = "thumb"; b.title = "seed " + seed;
+  b.innerHTML = `<svg viewBox="0 0 ${last.W} ${last.H}">${svgBody(last, true)}</svg><button class="del" title="Remove">×</button>`;
+  b.querySelector(".del").onclick = ev => { ev.stopPropagation(); b.remove(); };
+  b.onclick = () => { Object.assign(S, snap); seedEl.value = seed; for (const k in widgets) widgets[k](); schedule(); };
+  document.getElementById("tray").appendChild(b);
+};
+
+document.getElementById("export").onclick = () => {
+  const g = last;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${g.W}mm" height="${g.H}mm" viewBox="0 0 ${g.W} ${g.H}">${svgBody(g, true)}</svg>`;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+  a.download = `chemical-waves-seed${seedEl.value}.svg`; a.click();
+};
+
+render();
+</script>
+</body>
+</html>
