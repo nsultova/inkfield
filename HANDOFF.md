@@ -1,63 +1,58 @@
 # HANDOFF
 
-Session ended: 2026-11-10 17:04
-Branch / HEAD: master @ f04d7eb (spec, plan, mockup, .gitignore and this file are untracked)
+Session ended: 2026-11-10 (evening)
+Branch / HEAD: master (inkfield-studio @ 528f000 merged by fast-forward)
+Home: ~/WORK/PROJECTS/inkfield, its own repository (GitHub: nsultova/inkfield, private). Copied on
+2026-11-10 from the training repo ~/WORK/AiEXP/AiEXP-procedural-art, which stays on its old master.
 
 ## Goal
-Design "inkfield": a local browser studio for plottable procedural art (image → Claude
-writes a generator → sliders → SVG for an AxiDraw A3), then build project 1 of 3.
+"inkfield": a local browser studio for plottable procedural art (image → Claude writes a
+generator → sliders → SVG for an AxiDraw A3). Project 1 of 3 (the app + Chemical waves).
 
 ## State
-- Done: design approved by Neda — `docs/superpowers/specs/2026-11-10-inkfield-studio-design.md`
-- Done: interactive mockup approved (v2) — `docs/superpowers/specs/2026-11-10-inkfield-mockup.html`
-- Done: implementation plan, 10 tasks, approved — `docs/superpowers/plans/2026-11-10-inkfield-studio.md`
-- Done: `.gitignore` (`.superpowers/`, `.venv/`, caches, `candidates/`)
-- In flight: nothing built. No product code exists yet.
-- Blocked: none
+- Done: all 10 plan tasks built by `builder` agents, each reviewed by a `reviewer`; a
+  whole-branch review ("ready to merge") and one fix wave on top. Suite: 131 passed.
+- Speed on the Ryzen 5 5500U: default A4 111 ms, A3 fill page with 24 pacemakers about
+  0.5 s, heaviest settings about 2.8 s.
+- Neda has run the app and likes it; the project moved to its own repository to be developed further.
+- Blocked: none.
 
 ## Next action
-Invoke `superpowers:subagent-driven-development` on
-`docs/superpowers/plans/2026-11-10-inkfield-studio.md`, starting at Task 1. Neda chose
-subagent-driven execution: `builder` agents implement one task each, `reviewer` agents
-check each task, Fable orchestrates. Branch off master first; Task 1's commit picks up
-the untracked docs.
+Project 2 (drawing → contours and hatching) starts with brainstorming, in a fresh session.
+Run the app with `uv sync`, `uv run inkfield`.
 
-## Decisions
-- Fresh start. The old `genart` tool is discarded; port nothing from it or from
-  `steering-material/*.py`. The mockup overrides `steering-material/ui-example-*.png`.
-- Python + numpy + FastAPI + no-build front end, managed by `uv`. Not Rust: Neda reads
-  the math, and a new piece is written every session.
-- Contour tracing is written in-project (readable marching squares). No scipy,
-  scikit-image, shapely or contour library.
-- Chemical waves is a geometric arrival-time model, not a reaction-diffusion simulation.
-- Default for any image: generate new pictures following the same rules. Reproduce a
-  specific image only when Neda says so.
-- Dashed/dotted lines removed "for now" at Neda's request. Do not add them.
-- "Keep candidate" = draft save, "Export SVG" = keeper save. Neda was asked about
-  `goal.md`'s draft/keeper pair and approved without answering; this is Claude's call.
-- Removing a candidate moves it to `candidates/.trash/`, no confirmation dialog.
-- If the speed targets (200 ms A4 default, 1 s A3 fill) cannot be met, the builder
-  stops and reports; it does not add a coarse-while-dragging preview on its own.
-- Projects 2 (drawing → hatching) and 3 (the "new piece from image" skill) come later.
-  Build neither now.
+## Decisions made during the build (Claude's rulings, all reversible)
+- The Unevenness strength is capped at 8 % of the noise wavelength so bent space cannot
+  fold; the slider saturates for long wavelengths. 0.08 was found by experiment.
+- The piece gets the frame inside the border when the border is on (as the plan says);
+  spec §8 says "largest shape inside the margin" and needs one clause if Neda agrees.
+- `simplify` in `core/polyline.py` is the batched, faster version; its docstring teaches
+  the plain algorithm first. Reverting to the simple loop still meets the speed targets
+  (167 ms default A4).
+- Pacemaker randomness is drawn as a fixed block of 24, so adding a pacemaker leaves the
+  others as they were.
+- The server refuses requests whose Host is not 127.0.0.1 or localhost.
+- `<inkfield>` settings element inside SVG `<metadata>` is allowed.
+- Three plan tests were adjusted or supplemented: the seam test ignores line ends on the
+  grid edge; a real zero-stroke render test was added; a no-fold test was added.
 
 ## Landmines
-- `.venv/` and `.pytest_cache/` in the root belong to the old `genart` tool (editable
-  install of a package that no longer exists). Plan Task 1 Step 1 deletes them and runs
-  `uv sync`. Do not activate the old `.venv` before that.
-- The mockup's JavaScript math is a throwaway sketch with known flaws (lines stop a grid
-  cell short of seams, messy spiral cores). Port its CSS and markup only (plan Task 9).
-- `trace_whole_numbers` (plan Task 3) needs cell size ≤ wavelength / 8, or lines get
-  gaps. Chemical waves uses `min(0.5, wavelength / 8)` mm.
-- In `tidy`, closed strokes must never be joined: the border outline starts exactly
-  where a horizontal line through the centre ends (plan Task 5).
-- Chemical waves tests assume `generate` draws pacemaker positions as its first use of
-  `rng` (plan Task 4).
-- Markdown files in this repo get reflowed on save by something outside the session, so
-  line numbers in the spec and plan shift. Search by heading, not line number.
+- `.superpowers/sdd/2026-11-10-inkfield-studio/progress.md` (git-ignored) is the build
+  ledger: every ruling and every deferred minor finding. Read it before deleting
+  `.superpowers/`. The older flat files in `.superpowers/sdd/` belong to the discarded
+  `genart` build.
+- `candidates/` is created in whatever folder the server is started from.
+- A pytest filter hides starlette's "httpx with testclient is deprecated" warning;
+  starlette now prefers a dev dependency named `httpx2`. Dependency change left to Neda.
+- Piece switching in the browser has never been exercised (only one piece exists).
+- The full build transcript and the session memory of the build live under the old folder's
+  Claude project (`~/.claude/projects/-home-nea-WORK-AiEXP-AiEXP-procedural-art/`); the three
+  memory files were copied to this folder's project.
+- Markdown files in this repo get reflowed on save by something outside the session;
+  search by heading, not line number.
 
 ## Read first (next session)
 - HANDOFF.md — always first
-- `docs/superpowers/plans/2026-11-10-inkfield-studio.md` — header, Global Constraints, Review Focus
-- `docs/superpowers/specs/2026-11-10-inkfield-studio-design.md` — sections 5, 8, 9, 12
-- Target machine: AMD Ryzen 5 5500U laptop; `uv` and `chromium` are installed.
+- `README.md` and `docs/adding-a-piece.md`
+- `inkfield/pieces/chemical_waves.py` — the model of a finished piece
+- `docs/superpowers/specs/2026-11-10-inkfield-studio-design.md` §13 for projects 2 and 3
