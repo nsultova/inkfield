@@ -17,3 +17,6 @@ build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# starlette 1.x nudges TestClient users from httpx to httpx2; httpx still works and is what the
+# dev group installs.
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient` is deprecated"]

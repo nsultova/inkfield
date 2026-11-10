@@ -6,6 +6,9 @@
 """
 import argparse
 import sys
+import threading
+import time
+import webbrowser
 from pathlib import Path
 
 from inkfield.core.controls import Choice
@@ -25,6 +28,7 @@ def _name_value(text: str) -> tuple[str, str]:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="inkfield", description="A local studio for pen-plotter art.")
+    parser.set_defaults(port=8000, no_browser=False)          # for a bare `inkfield`, which serves
     commands = parser.add_subparsers(dest="command")
 
     serve = commands.add_parser("serve", help="start the studio in the browser (the default)")
@@ -65,6 +69,30 @@ def _render(args) -> int:
     return 0
 
 
+def _serve(args) -> int:
+    """Run the studio on this computer only (127.0.0.1), keeping candidates in ./candidates."""
+    import uvicorn
+
+    from inkfield.server.app import create_app
+
+    server = uvicorn.Server(uvicorn.Config(create_app(Path("candidates")), host="127.0.0.1",
+                                           port=args.port))
+    url = f"http://127.0.0.1:{args.port}/"
+    print(f"inkfield studio at {url}  (Ctrl+C to stop)")
+    if not args.no_browser:
+        threading.Thread(target=_open_when_ready, args=(server, url), daemon=True).start()
+    server.run()
+    return 0
+
+
+def _open_when_ready(server, url: str) -> None:
+    while not server.started:
+        if server.should_exit:
+            return
+        time.sleep(0.05)
+    webbrowser.open(url)
+
+
 def main(argv=None) -> int:
     args = _parser().parse_args(argv)
     if args.command == "render":
@@ -73,4 +101,4 @@ def main(argv=None) -> int:
         for slug, piece in discover().items():
             print(f"{slug}\t{piece.meta.title}")
         return 0
-    raise SystemExit("server not built yet")   # `serve`, also the default; built in Task 8
+    return _serve(args)   # `serve`, also the default
