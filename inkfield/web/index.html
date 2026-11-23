@@ -27,8 +27,19 @@
   </button>
 </header>
 
-<section id="studio">
-  <h1><span class="sigil">$_</span><span id="title"></span></h1>
+<!-- Two views, one shown at a time: app.js picks by the address (# is the gallery, #<slug> a studio). -->
+<section id="gallery" hidden>
+  <div class="pg-lede">
+    <p>A small studio for pen-plotter art. Each piece below is drawn here from a seed and a few
+    settings; pick one to move its sliders, keep the drawings you like and save them as SVG for
+    the plotter.</p>
+  </div>
+  <p class="gallery-note" id="gallery-note" hidden></p>
+  <div class="index--pg" id="works"></div>
+</section>
+
+<section id="studio" hidden>
+  <h1 id="title"></h1>
   <div class="pg">
     <aside id="panel" class="pg-controls" aria-label="Controls"></aside>
     <div class="pg-stage">

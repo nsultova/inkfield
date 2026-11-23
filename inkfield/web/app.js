@@ -1,5 +1,9 @@
 /* inkfield studio front end.
 
+   The page has two views: the gallery (address "#"), one card per piece with a preview drawn at
+   the piece's defaults, and a piece's studio (address "#<slug>"). route() picks the view from
+   the address, so the back and forward buttons move between them.
+
    Everything drawn on the paper comes from the server: this file builds the controls from
    /api/pieces, sends the current settings to /api/render, and shows the SVG that comes back.
    The server resolves and clamps whatever it is sent, so after each render the returned
@@ -165,6 +169,12 @@ async function send() {
   }
 }
 
+/* Forget any render still on its way: its answer belongs to a studio that is no longer shown. */
+function dropRenders() {
+  version += 1;
+  followUp = false;
+}
+
 function changed() {
   store();
   requestRender();
@@ -195,7 +205,15 @@ function plotNode(text) {
   return document.importNode(root, true);
 }
 
-/* The margin as a faint dashed rectangle over the paper. Preview only: never part of the SVG. */
+/* A plot shown a second time (a kept thumbnail, a gallery card) drops its ids, since the
+   preview on the paper carries the same ones. */
+function withoutIds(plot) {
+  for (const node of [plot, ...plot.querySelectorAll("[id]")]) node.removeAttribute("id");
+  return plot;
+}
+
+/* The margin as a faint dashed rectangle over the paper. Preview only: never part of the SVG.
+   Its colour is set in app.css, so it follows the light or dark theme. */
 function marginGuide(page) {
   const svg = document.createElementNS(SVG_NS, "svg");
   svg.setAttribute("class", "guide");
@@ -203,7 +221,7 @@ function marginGuide(page) {
   const rect = document.createElementNS(SVG_NS, "rect");
   const attributes = {
     x: page.margin, y: page.margin, width: page.width - 2 * page.margin, height: page.height - 2 * page.margin,
-    fill: "none", stroke: "#c8451b", "stroke-opacity": 0.28, "stroke-width": 0.25, "stroke-dasharray": "1.5 1.5",
+    fill: "none", "stroke-width": 0.25, "stroke-dasharray": "1.5 1.5",
   };
   for (const [name, value] of Object.entries(attributes)) rect.setAttribute(name, value);
   svg.append(rect);
@@ -275,10 +293,11 @@ function adopt(settings) {
 
 /* ---------- building the page ---------- */
 
-/* The piece's title above the box, and its three groups of controls on the left. */
+/* The piece's title above the box ("$_" is added with it, so the heading is never a bare "$_"),
+   and its three groups of controls on the left. */
 function buildPanel() {
   const piece = currentPiece();
-  $("title").textContent = piece.title;
+  $("title").replaceChildren(el("span", "sigil", "$_"), piece.title);
   $("panel").replaceChildren(
     section(piece.title, piece.info, "params", piece.params),
     section("Finishing", catalogue.finish.info, "finish", catalogue.finish.params),
@@ -286,31 +305,38 @@ function buildPanel() {
   );
 }
 
-/* One group of controls. Its header is a button that folds the group away and opens it again;
-   the folded state is not remembered. The info text sits inside the group, behind its "i". */
+/* One group of controls. Its header row holds two separate buttons: the title with its caret,
+   which folds the group away and opens it again (not remembered), and a small "i" beside the
+   caret, which shows the info text under the header. Being siblings, not one inside the other,
+   a click on one never reaches the other. The info text stays outside the folding part, so it
+   can be read with the group folded. */
 function section(title, info, group, controls) {
   const node = el("section", "pg-group");
-  const head = el("button", "pg-group-header");
-  head.type = "button";
-  head.setAttribute("aria-expanded", "true");
-  head.append(el("span", null, title), el("span", "pg-caret", "▾"));
-  const body = el("div", "pg-group-body");
-  head.addEventListener("click", () => {
+  const head = el("div", "pg-group-header");
+  const fold = el("button", "pg-group-toggle");
+  fold.type = "button";
+  fold.setAttribute("aria-expanded", "true");
+  fold.append(el("span", null, title), el("span", "pg-caret", "▾"));
+  fold.addEventListener("click", () => {
     const folded = node.classList.toggle("is-collapsed");
-    head.setAttribute("aria-expanded", String(!folded));
+    fold.setAttribute("aria-expanded", String(!folded));
   });
-  node.append(head, body);
+  head.append(fold);
+  node.append(head);
   if (info) {
     const button = el("button", "info-btn", "i");
     button.type = "button";
-    button.title = "About";
+    button.title = `About ${title}`;
     button.setAttribute("aria-expanded", "false");
     const text = el("p", "info", info);
     button.addEventListener("click", () => {
       button.setAttribute("aria-expanded", String(text.classList.toggle("open")));
     });
-    body.append(button, text);
+    head.append(button);
+    node.append(text);
   }
+  const body = el("div", "pg-group-body");
+  node.append(body);
   widgets[group] = {};
   for (const control of controls) body.append(controlRow(group, control));
   return node;
@@ -367,11 +393,21 @@ function controlRow(group, control) {
   return row;
 }
 
+/* Into the studio of one piece, with the settings stored for it. A different piece gets its own
+   controls and tray, and an empty sheet until its first drawing arrives, so the last piece's
+   drawing never shows under this one's title. The same piece again keeps its controls. Either
+   way the sheet is drawn anew: a render cut short by leaving the studio was dropped. */
 function choosePiece(slug) {
-  if (slug === state.piece) return;
-  state.piece = slug;
-  buildPanel();
-  loadTray();
+  if (slug !== state.piece) {
+    state.piece = slug;
+    shown = shownPage = null;
+    paper.replaceChildren();
+    statsLine.classList.remove("error");
+    statsLine.textContent = "";
+    buildPanel();
+    showAllControls();
+    loadTray();
+  }
   changed();
 }
 
@@ -394,7 +430,7 @@ async function thumbImage(item) {
     const response = await fetch(item.url);
     const plot = response.ok ? plotNode(await response.text()) : null;
     if (plot) {
-      for (const node of [plot, ...plot.querySelectorAll("[id]")]) node.removeAttribute("id");
+      withoutIds(plot);
       plot.setAttribute("role", "img");
       plot.setAttribute("aria-label", `seed ${item.seed}`);
       return plot;
@@ -455,6 +491,66 @@ async function keepCandidate() {
 }
 
 
+/* ---------- the gallery ---------- */
+
+/* One card per piece, in catalogue order; each is a link to that piece's studio. The previews
+   are drawn once per page load, at the piece's defaults and seed 0; a card whose drawing fails
+   says so and still leads to the studio. */
+function buildGallery() {
+  $("works").replaceChildren(...catalogue.pieces.map(galleryCard));
+}
+
+function galleryCard(piece) {
+  const card = el("a", "work");
+  card.href = `#${piece.slug}`;
+  card.setAttribute("aria-label", piece.title);
+  const sheet = el("div", "work-sheet");
+  const name = el("span", "name");
+  name.append(el("span", "sigil", "$_"), piece.title);
+  const caption = el("div", "caption");
+  caption.append(name, el("span", null, "procedural · SVG"));
+  card.append(sheet, caption);
+  drawPreview(piece, sheet);
+  return card;
+}
+
+async function drawPreview(piece, sheet) {
+  try {
+    const result = await postJSON("/api/render", { piece: piece.slug, seed: 0 });
+    const plot = plotNode(result.svg);
+    if (!plot) throw new Error("the server sent an SVG that cannot be read");
+    sheet.style.aspectRatio = `${result.page.width} / ${result.page.height}`;
+    sheet.replaceChildren(withoutIds(plot));
+  } catch (error) {
+    sheet.replaceChildren(el("span", "work-error", `no preview: ${error.message}`));
+  }
+}
+
+/* A message in place of the cards, when there are none to show. */
+function showGalleryNote(message) {
+  $("gallery-note").textContent = message;
+  $("gallery-note").hidden = false;
+}
+
+
+/* ---------- which view: gallery or studio ---------- */
+
+/* The address decides: "#<slug>" of a known piece opens its studio; an empty or unknown hash
+   shows the gallery. Exactly one of the two is visible. */
+function route() {
+  const piece = catalogue.pieces.find(p => `#${p.slug}` === location.hash);
+  $("gallery").hidden = Boolean(piece);
+  $("studio").hidden = !piece;
+  if (piece) {
+    document.title = `${piece.title} · inkfield`;
+    choosePiece(piece.slug);
+  } else {
+    document.title = "inkfield";
+    dropRenders();
+  }
+}
+
+
 /* ---------- toolbar and header ---------- */
 
 function exportSvg() {
@@ -509,16 +605,20 @@ function bindModeToggle() {
 
 /* ---------- start-up ---------- */
 
+/* The settings stored for every piece are read once here; which piece is open comes from the
+   address, through route(). Without the server or without pieces, the gallery says why. */
 async function start() {
   bindModeToggle();          // first, so the toggle works even when the server does not answer
   try {
     catalogue = await api("/api/pieces");
   } catch (error) {
-    showError(error.message);
+    $("gallery").hidden = false;
+    showGalleryNote(error.message);
     return;
   }
   if (!catalogue.pieces.length) {
-    showError("no pieces found");
+    $("gallery").hidden = false;
+    showGalleryNote("no pieces found");
     return;
   }
   const stored = loadStored();
@@ -526,15 +626,12 @@ async function start() {
   for (const piece of catalogue.pieces) {
     state.settings[piece.slug] = usableSettings(piece, storedSettings[piece.slug]);
   }
-  const known = catalogue.pieces.some(p => p.slug === stored.piece);
-  state.piece = known ? stored.piece : catalogue.pieces[0].slug;
   state.seed = usableSeed(stored.seed);
 
-  buildPanel();
-  showAllControls();
   bindToolbar();
-  loadTray();
-  changed();
+  buildGallery();
+  addEventListener("hashchange", route);
+  route();
 }
 
 start();

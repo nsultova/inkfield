@@ -21,6 +21,11 @@ Ctrl+C. The server listens on 127.0.0.1 only, so other computers cannot reach it
 `uv run inkfield serve --port 8001` for another port, and `uv run inkfield serve --no-browser`
 to not open a browser.
 
+The page opens on a gallery: one card per piece, each showing a drawing at the piece's default
+settings and seed 0. Click a card to open that piece's studio, whose address ends in the piece's
+slug (for example `#chemical-waves`); the `$_inkfield` link or the browser's back button returns
+to the gallery.
+
 
 ## Rendering from the command line
 

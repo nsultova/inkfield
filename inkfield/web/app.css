@@ -70,6 +70,27 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .mode-toggle[aria-pressed="true"] .mts-thumb { left: 2px; }
 .mode-toggle:hover .mts-thumb { background: var(--accent); }
 
+/* the gallery: a lede in the serif face, then one card per piece, after the site's .index--pg */
+#gallery { margin-top: clamp(1.25rem, 4vw, 2.25rem); }
+.pg-lede { max-width: 46rem; margin-bottom: clamp(1.75rem, 5vw, 3.25rem); color: var(--ink-dim); }
+.pg-lede p { margin: 0; }
+.gallery-note { font: 12px var(--mono); color: var(--accent); }
+.index--pg { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: clamp(1rem, 2.5vw, 2rem); }
+.work { display: block; text-decoration: none; color: inherit; }
+.work-sheet {
+  aspect-ratio: 210 / 297; background: var(--paper); border-radius: 2px; box-shadow: var(--sheet-shadow);
+  display: grid; place-items: center; overflow: hidden; transition: opacity .4s;
+}
+.work:hover .work-sheet { opacity: .84; }
+.work-sheet svg { width: 100%; height: 100%; display: block; }
+.work-error { padding: 1rem; font: 11px/1.5 var(--mono); color: #6b6b6b; text-align: center; }
+.caption {
+  font-family: var(--mono); font-size: 11.5px; line-height: 1.65; color: var(--ink-dim); margin-top: .8rem;
+  display: flex; flex-wrap: wrap; gap: 0 .5rem; align-items: center;
+}
+.caption .name { color: var(--ink); width: 100%; }
+.caption .sigil { font-size: 1em; vertical-align: 0; margin-right: 0; }
+
 /* $_Piece title */
 h1 {
   font-weight: 400; font-size: clamp(1.8rem, 5vw, 2.75rem); line-height: 1.13; letter-spacing: -.012em;
@@ -90,33 +111,40 @@ h1 {
 }
 .pg-stage { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 
-/* control groups; the header button collapses the group */
+/* control groups; in the header row, the title button collapses the group and the "i" beside
+   its caret shows the info text */
 .pg-group { border: 1px solid var(--ink-faint); border-radius: 5px; flex: none; }
 .pg-group-header {
-  width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 6px 10px;
-  background: var(--ground-deep); border: 0; border-radius: 4px 4px 0 0;
+  display: flex; align-items: center; gap: 8px; padding-right: 8px;
+  background: var(--ground-deep); border-radius: 4px 4px 0 0;
+}
+.pg-group-toggle {
+  flex: 1; min-width: 0; display: flex; justify-content: space-between; align-items: center; padding: 6px 10px;
+  background: none; border: 0; text-align: left;
   font-size: 10px; font-weight: 400; letter-spacing: .14em; text-transform: uppercase;
   color: var(--ink-quiet); user-select: none; transition: color .15s;
 }
-.pg-group-header:hover { color: var(--ink); }
+.pg-group-toggle:hover { color: var(--ink); }
+.pg-group-toggle:only-child { margin-right: 24px; }   /* no "i": keep the caret where the others are */
 .pg-caret { display: inline-block; transition: transform .18s; color: var(--accent); }
 .pg-group.is-collapsed .pg-group-header { border-radius: 4px; }
 .pg-group.is-collapsed .pg-caret { transform: rotate(-90deg); }
 .pg-group.is-collapsed .pg-group-body { display: none; }
 .pg-group-body { display: flex; flex-direction: column; gap: 10px; padding: 8px; }
 
-/* the info text behind its small button, at the top of the group body */
+/* the info text behind its small button; the text opens under the header */
 .info-btn {
-  align-self: flex-end; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--ink-faint);
-  background: none; font: italic 11px/1 var(--serif); color: var(--ink-quiet); padding: 0;
+  flex: none; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--ink-faint);
+  background: none; font: italic 10px/1 var(--serif); color: var(--ink-quiet); padding: 0;
 }
 .info-btn:hover { border-color: var(--accent); }
 .info-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent-deep); }
 .info {
-  display: none; margin: 0; padding: 8px 10px; font: 13px/1.45 var(--serif); color: var(--ink-dim);
+  display: none; margin: 8px 8px 0; padding: 8px 10px; font: 13px/1.45 var(--serif); color: var(--ink-dim);
   border-left: 2px solid var(--accent); background: var(--ground-deep);
 }
 .info.open { display: block; }
+.pg-group.is-collapsed .info.open { margin-bottom: 8px; }
 
 /* one control: label and value above a slider or a row of choices */
 .pg-param { display: flex; flex-direction: column; gap: 3px; }
@@ -149,9 +177,10 @@ h1 {
 .pg-seed { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-quiet); }
 .pg-seed input {
   width: 90px; padding: 5px 8px; background: var(--ground-deep); border: 1px solid var(--ink-faint);
-  border-radius: 4px; color: var(--ink); font: 12px var(--mono); outline: none; transition: border-color .15s;
+  border-radius: 4px; color: var(--ink); font: 12px var(--mono); transition: border-color .15s;
 }
 .pg-seed input:focus { border-color: var(--accent); }
+.pg-seed input:focus-visible { outline-offset: 2px; }
 .pg-btn {
   background: var(--ground-deep); border: 1px solid var(--ink-faint); border-radius: 4px; color: var(--ink);
   font: 12px var(--mono); padding: 6px 14px; white-space: nowrap; transition: border-color .15s, color .15s, background .15s;
@@ -168,6 +197,7 @@ h1 {
 #paper { position: relative; background: var(--paper); border-radius: 2px; box-shadow: var(--sheet-shadow); }
 #paper > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #paper > .guide { pointer-events: none; }
+#paper > .guide rect { stroke: var(--accent-deep); stroke-opacity: .55; }   /* the margin guide */
 
 /* kept candidates, below the sheet */
 .pg-tray {
@@ -199,4 +229,8 @@ h1 {
   .pg-toolbar { padding: 9px 12px; gap: 8px; }
   .pg-btn { padding: 6px 10px; }
   .pg-well { padding: 12px; }
+  .index--pg { grid-template-columns: repeat(2, 1fr); gap: .75rem; }
+}
+@media (max-width: 480px) {
+  .index--pg { grid-template-columns: 1fr; }
 }

@@ -28,3 +28,9 @@ def test_site_palette_is_present():
     css = (WEB / "app.css").read_text().replace(" ", "")
     for token in ["--ground:#0a0b0e", "--accent:#b7a6dc", "--ground:#c3b6a6", "--accent:#6e1218"]:
         assert token in css, token
+
+
+def test_page_has_both_views():
+    html = (WEB / "index.html").read_text()
+    for needle in ['id="gallery"', 'id="studio"', 'id="home"']:
+        assert needle in html, needle
