@@ -52,7 +52,7 @@ back.
 
 ## Kept candidates and the trash
 
-"Keep candidate" in the studio saves the current drawing as an SVG file in
+"keep" in the studio saves the current drawing as an SVG file in
 `candidates/<piece-slug>/`, inside the folder you started `uv run inkfield` from. Removing a
 candidate (the × on its thumbnail) does not delete it: the file moves to
 `candidates/.trash/<piece-slug>/`, where you can get it back. The `candidates/` folder is

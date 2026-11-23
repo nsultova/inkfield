@@ -230,7 +230,7 @@ function marginGuide(page) {
 
 /* Size the paper to fit the well (less its 24 px padding) at the page's true proportions. */
 function fit() {
-  if (!shownPage) return;
+  if (!shownPage || $("studio").hidden) return;   // a hidden studio has no size to fit into
   const scale = Math.min((stage.clientWidth - 48) / shownPage.width, (stage.clientHeight - 48) / shownPage.height);
   paper.style.width = `${shownPage.width * scale}px`;
   paper.style.height = `${shownPage.height * scale}px`;
