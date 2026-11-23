@@ -99,6 +99,7 @@ META = Meta(
     title="Chemical waves",
     subtitle="Belousov–Zhabotinsky",
     framed_shape="circle",
+    seed=91132,
     info=("Each pacemaker starts emitting waves at its own moment. A point in the dish is claimed "
           "by whichever wave reaches it first, so the medium is described by one field: "
           "arrival(x) = min(delay + distance). Pen lines are the level curves of that field, one "
@@ -107,12 +108,12 @@ META = Meta(
 )
 
 PARAMS = [
-    Slider("sources",    "Pacemakers",        1,    24,  1,    9),
+    Slider("sources",    "Pacemakers",        1,    24,  1,    8),
     Slider("spirals",    "Spiral share",      0,    1,   0.01, 0.30),
-    Slider("wavelength", "Wavelength",        2,    14,  0.1,  5.5, " mm"),
-    Slider("elapsed",    "Elapsed time",      0.08, 2,   0.01, 0.42),
+    Slider("wavelength", "Wavelength",        2,    14,  0.1,  5.9, " mm"),
+    Slider("elapsed",    "Elapsed time",      0.08, 2,   0.01, 2),
     Slider("stagger",    "Start stagger",     0,    1,   0.01, 0.70),
-    Slider("uneven",     "Medium unevenness", 0,    1,   0.01, 0.20),
+    Slider("uneven",     "Medium unevenness", 0,    1,   0.01, 0.70),
 ]
 
 MAX_SOURCES = next(int(control.max) for control in PARAMS if control.name == "sources")

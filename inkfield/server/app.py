@@ -52,7 +52,7 @@ def create_app(candidates_dir: Path = Path("candidates"), pieces: dict | None = 
 
     catalogue = {
         "pieces": [{"slug": slug, "title": piece.meta.title, "subtitle": piece.meta.subtitle,
-                    "info": piece.meta.info, "params": describe(piece.params)}
+                    "info": piece.meta.info, "seed": piece.meta.seed, "params": describe(piece.params)}
                    for slug, piece in pieces.items()],
         "finish": {"info": FINISH_INFO, "params": describe(FINISH_PARAMS)},
         "page": {"params": describe(PAGE_PARAMS)},

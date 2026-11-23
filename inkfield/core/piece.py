@@ -20,6 +20,7 @@ class Meta:
     subtitle: str
     framed_shape: str
     info: str
+    seed: int = 0        # the seed the piece opens with, and the one its gallery preview is drawn from
 
 
 @dataclass(frozen=True)

@@ -16,13 +16,14 @@ def test_index_and_pieces(client):
     assert client.get("/").status_code == 200
     d = client.get("/api/pieces").json()
     cw = next(p for p in d["pieces"] if p["slug"] == "chemical-waves")
+    assert cw["seed"] == 91132
     assert [c["name"] for c in cw["params"]] == ["sources", "spirals", "wavelength", "elapsed", "stagger", "uneven"]
     assert [c["name"] for c in d["finish"]["params"]] == ["wobble", "border"] and d["page"]["params"][0]["name"] == "composition"
 
 def test_render(client):
     r = client.post("/api/render", json={"piece": "chemical-waves", "seed": 7}).json()
     assert r["svg"].startswith("<svg") and r["stats"]["strokes"] > 5 and r["page"] == {"width": 210, "height": 297, "margin": 16}
-    assert r["settings"]["params"]["sources"] == 9
+    assert r["settings"]["params"]["sources"] == 8
 
 def test_errors(client):
     assert client.post("/api/render", json={"piece": "nope"}).status_code == 404

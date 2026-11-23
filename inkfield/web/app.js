@@ -25,7 +25,7 @@ const seedInput = $("seed"), paper = $("paper"), stage = $("stage"), statsLine =
 let catalogue = null;       // the /api/pieces answer
 const state = {
   piece: null,              // slug of the current piece
-  seed: 0,
+  seed: null,              // null until a piece is opened: nothing stored yet, so the piece's own seed is used
   settings: {},             // per piece slug: {params, finish, page}
 };
 const widgets = {};         // per group, per control name: a function that shows the stored value
@@ -81,8 +81,8 @@ function usableSettings(piece, raw) {
   return settings;
 }
 
-function usableSeed(raw) {
-  return Number.isInteger(raw) && raw >= 0 && raw < 2 ** 32 ? raw : 0;
+function usableSeed(raw, fallback = 0) {
+  return Number.isInteger(raw) && raw >= 0 && raw < 2 ** 32 ? raw : fallback;
 }
 
 function sliderText(value, control) {
@@ -400,6 +400,7 @@ function controlRow(group, control) {
 function choosePiece(slug) {
   if (slug !== state.piece) {
     state.piece = slug;
+    if (state.seed === null) state.seed = usableSeed(currentPiece().seed);
     shown = shownPage = null;
     paper.replaceChildren();
     statsLine.classList.remove("error");
@@ -494,7 +495,7 @@ async function keepCandidate() {
 /* ---------- the gallery ---------- */
 
 /* One card per piece, in catalogue order; each is a link to that piece's studio. The previews
-   are drawn once per page load, at the piece's defaults and seed 0; a card whose drawing fails
+   are drawn once per page load, at the piece's defaults and its own seed; a card whose drawing fails
    says so and still leads to the studio. */
 function buildGallery() {
   $("works").replaceChildren(...catalogue.pieces.map(galleryCard));
@@ -516,7 +517,7 @@ function galleryCard(piece) {
 
 async function drawPreview(piece, sheet) {
   try {
-    const result = await postJSON("/api/render", { piece: piece.slug, seed: 0 });
+    const result = await postJSON("/api/render", { piece: piece.slug, seed: piece.seed });
     const plot = plotNode(result.svg);
     if (!plot) throw new Error("the server sent an SVG that cannot be read");
     sheet.style.aspectRatio = `${result.page.width} / ${result.page.height}`;
@@ -626,7 +627,7 @@ async function start() {
   for (const piece of catalogue.pieces) {
     state.settings[piece.slug] = usableSettings(piece, storedSettings[piece.slug]);
   }
-  state.seed = usableSeed(stored.seed);
+  state.seed = usableSeed(stored.seed, null);
 
   bindToolbar();
   buildGallery();

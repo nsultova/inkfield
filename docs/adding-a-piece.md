@@ -174,7 +174,7 @@ its idea.
 | Tool | What it is for |
 |------|----------------|
 | `stroke.Stroke(points, layer=0)` | One pen-down line: an (N, 2) array of points in mm. `layer` is the pen (always 0 for now). |
-| `piece.Meta(slug, title, subtitle, framed_shape, info)` | The piece's name and description. |
+| `piece.Meta(slug, title, subtitle, framed_shape, info, seed=0)` | The piece's name and description. `seed` is the seed the piece opens with in the studio and the one its gallery preview is drawn from. |
 | `controls.Slider`, `controls.Choice`, `controls.Toggle` | Declare the controls in `PARAMS`. |
 | `frame.Frame` | The region to fill. `shape`, `cx`, `cy`, `half_w`, `half_h`; `bbox` (x0, y0, x1, y1); `scale` (its smaller half-size, a length to measure sizes against); `contains(x, y)` (works on arrays); `inset(d)`; `sample(rng, n, shrink=1.0)` (n random points inside, as an (n, 2) array); `outline()` (the edge as a closed polyline). |
 | `noise.SmoothField(rng, wavelength, octaves=2)` | A smooth random vector field. Calling `field(x, y)` gives a push `(dx, dy)`, each between -1 and 1. Good for making regular shapes a little uneven. |
