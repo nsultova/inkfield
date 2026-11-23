@@ -4,8 +4,8 @@ import pytest
 from inkfield.core.controls import resolve
 from inkfield.core.frame import Frame
 from inkfield.core.rng import make_rng
-from inkfield.pieces.water_droplets import (IMPACT_GAP, IMPACT_RINGS, PARAMS, PUDDLE_SIZE, TILT,
-                                            generate, place_drops)
+from inkfield.pieces.water_droplets import (IMPACT_GAP, IMPACT_RINGS, PARAMS, PUDDLE_SIZE, SMALLEST_RING,
+                                            TILT, generate, place_drops)
 
 FRAME = Frame("rect", 105, 148.5, 89, 132.5)      # A4 portrait, 16 mm margin
 D = resolve(PARAMS, None)
@@ -69,6 +69,18 @@ def test_interference_bends_rings_by_at_most_its_strength_per_other_drop():
             assert dev.max() <= 2 * 0.3 * gap + 1e-6; largest = max(largest, dev.max())
         for _ in range(IMPACT_RINGS): next(s)
     assert largest > 0.3 * gap
+
+@pytest.mark.parametrize("seed", range(5))
+def test_rings_never_fold_through_their_centre_even_with_every_drop_and_full_interference(seed):
+    # squash 1: ring point j sits at c + r(θ_j) · (cos θ_j, sin θ_j), so its push along (cos θ_j, sin θ_j) is r(θ_j)
+    gap = D["spacing"] * FRAME.scale
+    s = iter(run(seed, drops=24, squash=1.0, interference=0.5, wobble=1, splashes=0, puddle=0))
+    for drop in drops(24, seed=seed):
+        for k in range(max(2, int(D["rings"] * drop.age))):
+            x = next(s).points; theta = np.linspace(0, 2 * np.pi, len(x))
+            r = (x[:, 0] - drop.x) * np.cos(theta) + (x[:, 1] - drop.y) * np.sin(theta)
+            assert r.min() >= SMALLEST_RING * gap * D["growth"] ** k - 1e-9
+        for _ in range(IMPACT_RINGS): next(s)
 
 def test_puddle_edge_is_an_ellipse_inside_the_frame():
     s = run(puddle=1); t = run(puddle=0)

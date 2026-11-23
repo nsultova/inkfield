@@ -42,8 +42,11 @@ polar form: a radius r(θ) for each direction θ from 0 to 2π.
 
       interference_k(θ) = i · s · Σ_d cos(2π · |p − d| / λ)
 
-  so where two ripple systems overlap the rings take on the other's rhythm.
-* The ring is then r(θ) = r_k + wobble_k(θ) + interference_k(θ), placed at
+  so where two ripple systems overlap the rings take on the other's rhythm. With more than three
+  other drops the sum is scaled by 3 / (number of other drops): the push never grows past what
+  three drops' waves could do, so a crowded puddle is not shaken harder than a quiet one.
+* The ring is then r(θ) = r_k + wobble_k(θ) + interference_k(θ), kept at least 0.2 · r_k so a
+  strong push flattens the ring instead of folding it through its centre, and placed at
   c + r(θ) · (cos θ, sin θ).
 * The oblique view. Seen from the side, a circle on the water looks like an ellipse. Every
   ripple ring is squeezed by the factor `squash` along an axis tilted 0.15 radians (about 9°)
@@ -62,7 +65,8 @@ Rings per drop  the most ripple rings a drop can have; younger drops have fewer.
 Ring spacing    the first ring gap s, as a fraction of the frame's reference length.
 Ring spread     g, how much each ring's radius grows over the one inside it (1 = even gaps).
 Wobble          w, how uneven the rings are, in ring gaps.
-Interference    i, how far each other drop's waves push a ring in or out, in ring gaps.
+Interference    i, how far each other drop's waves push a ring in or out, in ring gaps
+                (with more than three other drops, their sum is scaled down to three drops' worth).
 Squash          the oblique view: 1 = seen from straight above, smaller = from lower down.
 Clustering      0 = drops spread evenly over the middle of the frame, 1 = bunched near its centre.
 Splashes        how many tiny splash drops each drop throws out.
@@ -120,6 +124,9 @@ CLUSTER_PULL = 0.7             # full clustering narrows the bell curve by this 
 WOBBLE_FREQS = (3, 7, 13)      # bumps around a ring, one sine wave each
 WOBBLE_GROWTH = 0.05           # the wobble grows by this share with every ring
 INTERFERENCE_WAVELENGTH = 2.4  # wavelength of other drops' waves, in ring gaps
+INTERFERENCE_DROPS = 3         # waves of up to this many other drops add up in full; more are
+                               # scaled down to this many drops' worth
+SMALLEST_RING = 0.2            # a ripple ring's radius never goes below this share of its plain radius
 TILT = 0.15                    # radians: the squash axis, measured from the horizontal
 IMPACT_RINGS = 3               # small circles at the impact point
 IMPACT_GAP = 0.22              # their spacing, in ring gaps
@@ -233,12 +240,17 @@ def puddle_edge(frame, count, phase):
 
 
 def ripple_ring(drop, k, gap, params, others):
-    """Ripple ring k of a drop: r(θ) = r_k + wobble_k(θ) + interference_k(θ), then squashed."""
+    """Ripple ring k of a drop: r(θ) = r_k + wobble_k(θ) + interference_k(θ), then squashed.
+
+    r(θ) is kept at least 0.2 · r_k, so a strong push flattens the ring instead of folding it
+    through its own centre.
+    """
     radius = gap * params["growth"] ** k
     theta = angles(radius, RING_POINTS)
     r = (radius
          + wobble(drop, k, gap, params["wobble"], theta)
          + interference(drop, radius, gap, params["interference"], others, theta))
+    r = np.maximum(r, SMALLEST_RING * radius)
     return squashed(closed_curve(drop.x, drop.y, theta, r), drop, params["squash"])
 
 
@@ -249,7 +261,11 @@ def wobble(drop, k, gap, strength, theta):
 
 
 def interference(drop, radius, gap, strength, others, theta):
-    """i · s · Σ_d cos(2π · |p − d| / λ), with p on the plain circle and λ = 2.4 · s."""
+    """i · s · Σ_d cos(2π · |p − d| / λ), with p on the plain circle and λ = 2.4 · s.
+
+    With more than three other drops the sum is scaled by 3 / (number of other drops), so a ring
+    is never pushed further than three drops' waves could push it, however many drops there are.
+    """
     if not others or strength == 0:
         return 0.0
     px = drop.x + radius * np.cos(theta)
@@ -258,7 +274,8 @@ def interference(drop, radius, gap, strength, others, theta):
     other_y = np.array([d.y for d in others])[:, None]
     distance = np.hypot(px - other_x, py - other_y)
     wavelength = INTERFERENCE_WAVELENGTH * gap
-    return strength * gap * np.cos(2 * math.pi * distance / wavelength).sum(axis=0)
+    share = min(1.0, INTERFERENCE_DROPS / len(others))      # 1 for a few drops, less for many
+    return strength * gap * share * np.cos(2 * math.pi * distance / wavelength).sum(axis=0)
 
 
 def squashed(points, drop, squash):

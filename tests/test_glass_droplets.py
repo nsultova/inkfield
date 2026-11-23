@@ -4,7 +4,7 @@ import pytest
 from inkfield.core.controls import resolve
 from inkfield.core.frame import Frame
 from inkfield.core.rng import make_rng
-from inkfield.pieces.glass_droplets import PARAMS, generate, drop_rings, slide_down
+from inkfield.pieces.glass_droplets import PARAMS, SATELLITE_DEPTH, generate, drop_rings, satellites, slide_down
 
 FRAME = Frame("rect", 105, 148.5, 86, 129)
 D = resolve(PARAMS, None)
@@ -26,9 +26,32 @@ def test_strokes_are_well_formed():
 def test_every_control_changes_the_picture(name, value):
     a, b = run(), run(**{name: value}); assert len(a) != len(b) or not np.array_equal(pts(a), pts(b))
 
+def test_same_rng_state_gives_the_same_strokes():
+    # two generators from the same seed, and one generator set back to the state it started in
+    def same(a, b): return len(a) == len(b) and all(np.array_equal(x.points, y.points) for x, y in zip(a, b))
+    assert same(generate(D, FRAME, make_rng(7, "piece")), generate(D, FRAME, make_rng(7, "piece")))
+    rng = make_rng(7, "piece"); start = rng.bit_generator.state
+    first = generate(D, FRAME, rng); rng.bit_generator.state = start
+    assert same(first, generate(D, FRAME, rng))
+
 def test_adding_a_drop_leaves_the_others_as_they_were():
     ten, eleven = run(drops=10), run(drops=11)
     assert len(eleven) > len(ten) and all(np.array_equal(x.points, y.points) for x, y in zip(ten, eleven))
+
+def test_full_ring_warp_keeps_every_ring_on_its_own_side_of_the_centre():
+    # with no motion a ring point sits at c + ρ · (−cos θ, v'), v' of the sign of sin θ: ρ > 0 means it points that way
+    for seed in range(20):
+        for ring in drop_rings(make_rng(seed, "t"), 50, 50, 10, np.pi / 2, speed=0, count=6, warp=2, viscosity=0.3):
+            theta = 2 * np.pi * np.arange(len(ring) - 1) / (len(ring) - 1)
+            x, y = (ring[:-1] - 50).T
+            assert (-x * np.cos(theta) + y * np.sin(theta) > 0).all()
+
+def test_satellites_follow_the_rings_slider():
+    track = np.column_stack([np.full(40, 50.0), np.linspace(20, 60, 40)])
+    for seed in range(10):
+        count = make_rng(seed, "t").integers(1, SATELLITE_DEPTH + 2)        # how many satellites (drawn first)
+        lines = satellites(make_rng(seed, "t"), track, 5.0, SATELLITE_DEPTH, {**D, "rings": 1})
+        assert len(lines) == count                                           # one ring each
 
 def test_a_resting_bead_is_concentric_rings_evenly_spaced():
     s = run(drops=1, sliding=0, rings=6, warp=0)

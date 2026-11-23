@@ -21,7 +21,7 @@ def test_strokes_are_well_formed():
     assert all(x.points.ndim == 2 and x.points.shape[1] == 2 and len(x.points) >= 2 and np.isfinite(x.points).all() and x.layer == 0 for x in s)
 
 @pytest.mark.parametrize("name,value", [("lines", 30), ("bumps", 10), ("strands", 5), ("amplitude", 0.2), ("spread", 0.8),
-                                        ("smoothing", 0.0), ("origin_x", 0.5), ("origin_y", 0.5), ("reach", 1.5), ("folding", 6)])
+                                        ("smoothing", 0.0), ("origin_x", 0.5), ("origin_y", 0.5), ("reach", 1.5), ("folding", 0.5)])
 def test_every_control_changes_the_picture(name, value):
     a, b = run(), run(**{name: value}); assert len(a) != len(b) or not np.array_equal(pts(a), pts(b))
 

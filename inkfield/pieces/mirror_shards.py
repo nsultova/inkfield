@@ -63,7 +63,9 @@ separation 1 (bloom at weight 1, spray at 0.35, dissolve at 0.25). Finally the w
 shrunk about the frame centre, if needed, so that it still fits the frame.
 
 Cracks are drawn as gentle curves: each straight edge bows sideways by up to 3 % of its length,
-the same way for both shards that share it, so the seams stay shut at separation 0.
+the same way for both shards that share it, so the seams stay shut at separation 0. With Gap
+above 0 the shards are shrunk to new corners that no crack bow belongs to, so their outlines are
+drawn straight.
 
 The controls
 ------------
@@ -522,7 +524,8 @@ def bent(a, b, bows):
 
 
 def outline(poly, bows):
-    """A shard's closed outline, every crack bent."""
+    """A shard's closed outline, every crack bent. A shard shrunk by the gap has new edges with
+    no bow, so its outline comes out straight."""
     parts = [bent(a, b, bows)[:-1] for a, b in edges_of(poly)]
     return np.vstack(parts + [parts[0][:1]])
 

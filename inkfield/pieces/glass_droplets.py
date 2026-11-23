@@ -27,7 +27,8 @@ A drop of radius r at centre c is drawn as `rings` closed lines, ring k (k = 1 �
 A ring is traced by the angle θ from 0 to 2π, in a frame turned to the drop's direction of
 motion: u = cos θ runs across the motion, v = sin θ along it (v > 0 ahead, v < 0 behind).
 
-    radius      ρ(θ) = r_k + warp · 0.25 · r_k · Σ sin(f θ + φ_f),   f = 2, 3, 5
+    radius      ρ(θ) = r_k + warp · 0.25 · r_k · Σ sin(f θ + φ_f),   f = 2, 3, 5,
+                kept at least 0.1 · r_k, so a strong warp never folds the ring through its centre
     behind      v' = v · (1 + |v| · (e − 1))        (v < 0: the tail is stretched e times)
     ahead       v' = v · (1 − 0.05 v)               (v ≥ 0: the front is pressed 5 % flatter)
     point       c + ρ u · across + ρ v' · along
@@ -76,7 +77,8 @@ Trail beads        how many tiny beads a sliding drop leaves along its track.
 How the lines are drawn
 -----------------------
 1. Measure the frame in pane units.
-2. Give every drop its own random stream, so the drops do not depend on each other.
+2. Draw one seed per possible drop, and give every drop its own random stream from its seed, so
+   the drops do not depend on each other.
 3. For each drop: decide whether it slides, choose its size and starting place, and draw it:
    a resting bead is just its rings; a sliding drop is its track, the beads along the track, its
    rings at the end of the track, and its satellites.
@@ -126,6 +128,7 @@ WARP_FREQUENCIES = (2, 3, 5)        # bumps per ring for the ring warp
 DISTORTION = 0.0                    # fine ripple on top of the warp (0 = off), in ring radii / 10
 DISTORTION_FREQUENCIES = (6, 9, 13) # ripples per ring for the distortion
 FRONT_FLATTENING = 0.05     # how much flatter a drop's leading side is
+SMALLEST_RING = 0.1         # a warped ring's radius never goes below this share of r_k
 BEAD_RINGS = 1              # rings per trail bead
 BEAD_SCATTER = 1.2          # sideways spread of trail beads, in parent radii · 0.8
 BEAD_RANDOMNESS = 0.30      # 0 = beads evenly spaced along the track, 1 = fully random
@@ -139,9 +142,11 @@ def generate(params, frame, rng) -> list[Stroke]:
     unit = frame.scale / PANE_SCALE
     pane = ((x1 - x0) / unit, (y1 - y0) / unit)
 
-    # 2. One random stream per drop. They are split off for MAX_DROPS drops whatever the count,
-    #    so adding a drop leaves the others as they were.
-    drop_streams = rng.spawn(MAX_DROPS)[:params["drops"]]
+    # 2. One random stream per drop, each started from its own seed. The seeds are drawn from rng
+    #    as one block of MAX_DROPS whatever the count, so adding a drop leaves the others as they
+    #    were, and the same rng state always gives the same seeds.
+    seeds = rng.integers(0, 2**63, size=MAX_DROPS)
+    drop_streams = [np.random.default_rng(seed) for seed in seeds[:params["drops"]]]
 
     strokes = []
     for drop_rng in drop_streams:
@@ -246,6 +251,7 @@ def drop_rings(rng, cx, cy, radius, angle, speed, count, warp, viscosity) -> lis
         rho = (ring_radius
                + warp * 0.25 * ring_radius * bumps(theta, WARP_FREQUENCIES, warp_phases)
                + DISTORTION * 0.10 * ring_radius * bumps(theta, DISTORTION_FREQUENCIES, distortion_phases))
+        rho = np.maximum(rho, SMALLEST_RING * ring_radius)       # a strong warp may not turn ρ negative
         u, v = np.cos(theta), np.sin(theta)
         v = np.where(v < 0, v * (1 + np.abs(v) * (stretch - 1)), v * (1 - FRONT_FLATTENING * v))
         points = np.array([cx, cy]) + (rho * u)[:, None] * across + (rho * v)[:, None] * along
@@ -295,7 +301,8 @@ def satellites(rng, track, parent_radius, depth, params) -> list[np.ndarray]:
         distance = parent_radius * rng.uniform(0.8, 2.5)
         cx, cy = (track[index] + sideways(track, index) * distance * side
                   + [rng.normal(0, 0.3 * radius), rng.normal(0, 0.2 * radius)])
-        count = max(2, params["rings"] - (SATELLITE_DEPTH - depth + 1))
+        # one ring fewer per generation, at least 2, but never more than Rings per drop asks for
+        count = min(params["rings"], max(2, params["rings"] - (SATELLITE_DEPTH - depth + 1)))
         lines += drop_rings(rng, cx, cy, radius, math.pi / 2, 0.0, count, params["warp"],
                             params["viscosity"])
         if depth > 1 and rng.random() < 0.4:
