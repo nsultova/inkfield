@@ -4,7 +4,9 @@ inkfield is a small studio for pen-plotter art that runs in your browser, on you
 A piece is one readable Python file: it turns a seed and a few settings into pen strokes in
 millimetres. Finishing effects clip, frame and tidy the strokes, and the result is an SVG
 ready for a plotter such as the AxiDraw. The math is kept plain so that it can be read and learned
-from. The first piece is Chemical waves, after the Belousov–Zhabotinsky reaction.
+from. The first piece is Chemical waves, after the Belousov–Zhabotinsky reaction. Six more
+were ported from earlier prototypes: Geological strata, Turbulent lines, Coiled tendrils, Water
+droplets, Glass droplets and Mirror shards.
 
 
 ## Starting it
