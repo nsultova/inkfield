@@ -210,10 +210,10 @@ function marginGuide(page) {
   return svg;
 }
 
-/* Size the paper to fit the stage at the page's true proportions. */
+/* Size the paper to fit the well (less its 24 px padding) at the page's true proportions. */
 function fit() {
   if (!shownPage) return;
-  const scale = Math.min((stage.clientWidth - 44) / shownPage.width, (stage.clientHeight - 60) / shownPage.height);
+  const scale = Math.min((stage.clientWidth - 48) / shownPage.width, (stage.clientHeight - 48) / shownPage.height);
   paper.style.width = `${shownPage.width * scale}px`;
   paper.style.height = `${shownPage.height * scale}px`;
 }
@@ -275,27 +275,10 @@ function adopt(settings) {
 
 /* ---------- building the page ---------- */
 
-function buildRail() {
-  const rail = $("pieces");
-  for (const piece of catalogue.pieces) {
-    const button = el("button", "piece", piece.title);
-    button.type = "button";
-    button.dataset.slug = piece.slug;
-    button.append(el("small", null, piece.subtitle));
-    button.addEventListener("click", () => choosePiece(piece.slug));
-    rail.append(button);
-  }
-  markRail();
-}
-
-function markRail() {
-  for (const button of document.querySelectorAll(".piece")) {
-    button.classList.toggle("on", button.dataset.slug === state.piece);
-  }
-}
-
+/* The piece's title above the box, and its three groups of controls on the left. */
 function buildPanel() {
   const piece = currentPiece();
+  $("title").textContent = piece.title;
   $("panel").replaceChildren(
     section(piece.title, piece.info, "params", piece.params),
     section("Finishing", catalogue.finish.info, "finish", catalogue.finish.params),
@@ -303,11 +286,20 @@ function buildPanel() {
   );
 }
 
+/* One group of controls. Its header is a button that folds the group away and opens it again;
+   the folded state is not remembered. The info text sits inside the group, behind its "i". */
 function section(title, info, group, controls) {
-  const node = el("section");
-  const head = el("div", "sechead");
-  head.append(el("h2", null, title));
-  node.append(head);
+  const node = el("section", "pg-group");
+  const head = el("button", "pg-group-header");
+  head.type = "button";
+  head.setAttribute("aria-expanded", "true");
+  head.append(el("span", null, title), el("span", "pg-caret", "▾"));
+  const body = el("div", "pg-group-body");
+  head.addEventListener("click", () => {
+    const folded = node.classList.toggle("is-collapsed");
+    head.setAttribute("aria-expanded", String(!folded));
+  });
+  node.append(head, body);
   if (info) {
     const button = el("button", "info-btn", "i");
     button.type = "button";
@@ -317,17 +309,16 @@ function section(title, info, group, controls) {
     button.addEventListener("click", () => {
       button.setAttribute("aria-expanded", String(text.classList.toggle("open")));
     });
-    head.append(button);
-    node.append(text);
+    body.append(button, text);
   }
   widgets[group] = {};
-  for (const control of controls) node.append(controlRow(group, control));
+  for (const control of controls) body.append(controlRow(group, control));
   return node;
 }
 
 function controlRow(group, control) {
-  const row = el("div", "row");
-  const label = el("div", "lbl");
+  const row = el("div", "pg-param");
+  const label = el("div", "pg-param-head");
   label.append(el("span", null, control.label));
   row.append(label);
   const set = value => {
@@ -338,9 +329,9 @@ function controlRow(group, control) {
   let show;
 
   if (control.kind === "slider") {
-    const output = el("output");
+    const output = el("output", "pg-param-val");
     label.append(output);
-    const input = el("input");
+    const input = el("input", "pg-slider");
     input.type = "range";
     input.min = control.min;
     input.max = control.max;
@@ -379,7 +370,6 @@ function controlRow(group, control) {
 function choosePiece(slug) {
   if (slug === state.piece) return;
   state.piece = slug;
-  markRail();
   buildPanel();
   loadTray();
   changed();
@@ -465,7 +455,7 @@ async function keepCandidate() {
 }
 
 
-/* ---------- top bar ---------- */
+/* ---------- toolbar and header ---------- */
 
 function exportSvg() {
   if (!shown) return;
@@ -478,7 +468,7 @@ function exportSvg() {
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
-function bindTopBar() {
+function bindToolbar() {
   seedInput.addEventListener("input", () => {
     const typed = Number(seedInput.value);
     if (seedInput.value === "" || !Number.isFinite(typed)) return;
@@ -495,10 +485,32 @@ function bindTopBar() {
   addEventListener("resize", fit);
 }
 
+/* Dark or light: data-mode on <html> picks the palette in app.css. The choice is remembered
+   under its own key (index.html reads it before the first paint); without storage the toggle
+   still switches, it just forgets on reload. */
+const MODE_KEY = "inkfield.mode";
+
+function setMode(mode) {
+  document.documentElement.dataset.mode = mode;
+  $("mode-toggle").setAttribute("aria-pressed", String(mode === "light"));   // pressed = light
+}
+
+function bindModeToggle() {
+  setMode(document.documentElement.dataset.mode === "light" ? "light" : "dark");
+  $("mode-toggle").addEventListener("click", () => {
+    const mode = document.documentElement.dataset.mode === "light" ? "dark" : "light";
+    setMode(mode);
+    try {
+      localStorage.setItem(MODE_KEY, mode);
+    } catch { /* storage blocked: the mode lasts until reload */ }
+  });
+}
+
 
 /* ---------- start-up ---------- */
 
 async function start() {
+  bindModeToggle();          // first, so the toggle works even when the server does not answer
   try {
     catalogue = await api("/api/pieces");
   } catch (error) {
@@ -518,10 +530,9 @@ async function start() {
   state.piece = known ? stored.piece : catalogue.pieces[0].slug;
   state.seed = usableSeed(stored.seed);
 
-  buildRail();
   buildPanel();
   showAllControls();
-  bindTopBar();
+  bindToolbar();
   loadTray();
   changed();
 }
