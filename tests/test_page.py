@@ -15,6 +15,10 @@ def test_pages():
     assert make_page(resolve(PAGE_PARAMS, None)) == Page(250, 250, 16)
     assert make_page(resolve(PAGE_PARAMS, {"format": "A3", "orientation": "landscape", "margin": 20})) == Page(420, 297, 20)
 
+def test_a5_is_half_an_a4():
+    assert make_page(resolve(PAGE_PARAMS, {"format": "A5", "margin": 10})) == Page(148, 210, 10)
+    assert make_page(resolve(PAGE_PARAMS, {"format": "A5", "orientation": "landscape", "margin": 10})) == Page(210, 148, 10)
+
 def test_frames():
     p = Page(210, 297, 16)
     assert frame_for(p, "framed", "circle") == Frame("circle", 105, 148.5, 89, 89)

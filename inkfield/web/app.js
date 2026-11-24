@@ -238,6 +238,91 @@ function fit() {
   paper.style.height = `${shownPage.height * scale}px`;
 }
 
+/* ---------- a closer look: zoom and pan ---------- */
+
+/* A click on the well switches the closer look on: from then on the wheel zooms towards the
+   pointer and dragging moves the sheet. A click anywhere else switches it off again, so the
+   wheel scrolls the page as usual; the view stays where it is, so a detail can be watched while
+   a slider moves. A double click, or Escape, goes back to the whole sheet.
+
+   The sheet is moved with a CSS transform: shifted by (view.x, view.y) pixels from its place in
+   the middle of the well, then scaled by view.zoom about its own centre. */
+const ZOOM_MOST = 16, ZOOM_STEP = 1.0015;      // the wheel multiplies the zoom by STEP per pixel turned
+const view = { on: false, zoom: 1, x: 0, y: 0 };
+let dragFrom = null;                           // where the pointer was at the last drag event
+
+function applyView() {
+  paper.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`;
+  stage.classList.toggle("is-zooming", view.on);
+}
+
+function wholeSheet() {
+  view.zoom = 1;
+  view.x = view.y = 0;
+  applyView();
+}
+
+function setZoomMode(on) {
+  view.on = on;
+  dragFrom = null;
+  stage.classList.remove("is-dragging");
+  applyView();
+}
+
+/* Zoom by `factor`, keeping the point of the drawing under (clientX, clientY) where it is.
+   With d the pointer's offset from the sheet's centre on screen, that centre has to move by
+   d · (1 − new zoom / old zoom). */
+function zoomAt(clientX, clientY, factor) {
+  const zoom = Math.min(ZOOM_MOST, Math.max(1, view.zoom * factor));
+  if (zoom === 1) return wholeSheet();
+  const well = stage.getBoundingClientRect();
+  const dx = clientX - (well.left + well.width / 2) - view.x;
+  const dy = clientY - (well.top + well.height / 2) - view.y;
+  view.x += dx * (1 - zoom / view.zoom);
+  view.y += dy * (1 - zoom / view.zoom);
+  view.zoom = zoom;
+  applyView();
+}
+
+function bindZoom() {
+  stage.addEventListener("pointerdown", event => {
+    if (event.button !== 0) return;
+    if (!view.on) setZoomMode(true);
+    dragFrom = { x: event.clientX, y: event.clientY };
+    stage.setPointerCapture(event.pointerId);
+    stage.classList.add("is-dragging");
+  });
+  stage.addEventListener("pointermove", event => {
+    if (!dragFrom || view.zoom === 1) return;                 // the whole sheet stays centred
+    view.x += event.clientX - dragFrom.x;
+    view.y += event.clientY - dragFrom.y;
+    dragFrom = { x: event.clientX, y: event.clientY };
+    applyView();
+  });
+  for (const type of ["pointerup", "pointercancel"]) {
+    stage.addEventListener(type, () => {
+      dragFrom = null;
+      stage.classList.remove("is-dragging");
+    });
+  }
+  stage.addEventListener("wheel", event => {
+    if (!view.on) return;                                     // off: the wheel scrolls the page
+    event.preventDefault();
+    const pixels = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;   // lines to pixels
+    zoomAt(event.clientX, event.clientY, ZOOM_STEP ** -pixels);
+  }, { passive: false });
+  stage.addEventListener("dblclick", wholeSheet);
+  document.addEventListener("pointerdown", event => {
+    if (view.on && !stage.contains(event.target)) setZoomMode(false);
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && (view.on || view.zoom !== 1)) {
+      setZoomMode(false);
+      wholeSheet();
+    }
+  });
+}
+
 function showResult(result, milliseconds) {
   const plot = plotNode(result.svg);
   if (!plot) {
@@ -548,6 +633,8 @@ function route() {
   const piece = catalogue.pieces.find(p => `#${p.slug}` === location.hash);
   $("gallery").hidden = Boolean(piece);
   $("studio").hidden = !piece;
+  setZoomMode(false);        // every studio opens on its whole sheet
+  wholeSheet();
   if (piece) {
     document.title = `${piece.title} · inkfield`;
     choosePiece(piece.slug);
@@ -586,6 +673,7 @@ function bindToolbar() {
   $("keep").addEventListener("click", keepCandidate);
   $("export").addEventListener("click", exportSvg);
   addEventListener("resize", fit);
+  bindZoom();
 }
 
 /* Dark or light: data-mode on <html> picks the palette in app.css. The choice is remembered

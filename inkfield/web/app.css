@@ -195,7 +195,16 @@ h1 {
 .pg-stat.error { color: var(--accent); }
 
 /* the well: the sheet at true proportions; the plot SVG and the margin guide are stacked inside it */
-.pg-well { flex: 1; min-height: 0; display: grid; place-items: center; padding: 24px; overflow: hidden; }
+.pg-well { flex: 1; min-height: 0; display: grid; place-items: center; padding: 24px; overflow: hidden; position: relative; cursor: zoom-in; touch-action: none; }
+/* the closer look (app.js): on after a click in the well, off after a click anywhere else */
+.pg-well.is-zooming { cursor: grab; box-shadow: inset 0 0 0 1px var(--accent-deep); }
+.pg-well.is-dragging { cursor: grabbing; }
+.pg-zoom-hint {
+  position: absolute; left: 10px; bottom: 8px; padding: 3px 8px; border-radius: 3px;
+  font: 10.5px var(--mono); color: var(--ink-dim); background: var(--ground-deep);   /* legible over the sheet too */
+  pointer-events: none; opacity: 0; transition: opacity .2s;
+}
+.pg-well.is-zooming .pg-zoom-hint { opacity: 1; }
 #paper { position: relative; background: var(--paper); border-radius: 2px; box-shadow: var(--sheet-shadow); }
 #paper > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #paper > .guide { pointer-events: none; }

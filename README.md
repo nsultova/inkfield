@@ -41,7 +41,7 @@ uv run inkfield render chemical-waves --seed 7 --format A3 --set sources=4 --set
 strokes, metres drawn, metres of pen-up travel and an estimate of the plot time.
 
 - `--set name=value` sets one of the piece's controls; repeat it for several.
-- Page: `--composition {framed,fill page}`, `--format {A4,A3,Square}` (Square by default),
+- Page: `--composition {framed,fill page}`, `--format {A5,A4,A3,Square}` (Square by default),
   `--orientation {portrait,landscape}`, `--margin MM`, `--pen {0.2,0.3,0.5,0.8}`.
 - Finishing: `--wobble 0…1` (hand wobble), `--border` (a double outline; off by default).
 - See `uv run inkfield render --help`.

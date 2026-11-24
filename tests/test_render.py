@@ -21,7 +21,7 @@ def test_settings_round_trip_reproduces_the_svg():
     s = read_settings(a.svg); assert s == a.settings
     assert render(PIECES, s["piece"], s["seed"], s["params"], s["finish"], s["page"]).svg == a.svg
 
-@pytest.mark.parametrize("fmt", ["A4", "A3", "Square"])
+@pytest.mark.parametrize("fmt", ["A5", "A4", "A3", "Square"])
 @pytest.mark.parametrize("orient", ["portrait", "landscape"])
 @pytest.mark.parametrize("comp", ["framed", "fill page"])
 def test_every_page_combination_stays_inside_the_margin(fmt, orient, comp):

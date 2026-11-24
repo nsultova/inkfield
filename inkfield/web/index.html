@@ -50,8 +50,9 @@
         <button type="button" class="pg-btn" id="keep" title="Keep this plot in the tray below">keep</button>
         <button type="button" class="pg-btn pg-btn--save" id="export"><svg class="pg-icon" viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M7,1.8 V8.6 M4.2,5.9 L7,8.7 L9.8,5.9 M2.2,10.2 V12.2 H11.8 V10.2" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> save SVG</button>
       </div>
-      <div class="pg-well" id="stage">
+      <div class="pg-well" id="stage" title="Click to zoom: wheel zooms, drag moves, double click shows the whole sheet">
         <div id="paper"></div>
+        <span class="pg-zoom-hint">wheel zooms · drag moves · double click: whole sheet · click outside: zoom off</span>
       </div>
       <footer id="tray" class="pg-tray">
         <div class="cap">Kept</div>
