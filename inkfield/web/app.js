@@ -14,7 +14,9 @@
    before it is put on the page. */
 "use strict";
 
-const STORAGE_KEY = "inkfield.state.v1";
+/* v2: the defaults became a square sheet without border; settings stored under v1 would have
+   kept every piece on A4 with the border on. */
+const STORAGE_KEY = "inkfield.state.v2";
 const SVG_NS = "http://www.w3.org/2000/svg";
 const PLOT_ELEMENTS = new Set(["svg", "metadata", "g", "path", "inkfield"]);
 const GROUPS = ["params", "finish", "page"];
@@ -495,8 +497,8 @@ async function keepCandidate() {
 /* ---------- the gallery ---------- */
 
 /* One card per piece, in catalogue order; each is a link to that piece's studio. The previews
-   are drawn once per page load, at the piece's defaults and its own seed; a card whose drawing fails
-   says so and still leads to the studio. */
+   are drawn once per page load, at the piece's default sliders and its own seed; a card whose
+   drawing fails says so and still leads to the studio. */
 function buildGallery() {
   $("works").replaceChildren(...catalogue.pieces.map(galleryCard));
 }
@@ -515,9 +517,13 @@ function galleryCard(piece) {
   return card;
 }
 
+/* A card shows the drawing at the defaults (a square sheet, no border), as on the site's
+   playground, only with a thinner margin than the studio's. */
+const PREVIEW = { page: { margin: 5 } };
+
 async function drawPreview(piece, sheet) {
   try {
-    const result = await postJSON("/api/render", { piece: piece.slug, seed: piece.seed });
+    const result = await postJSON("/api/render", { piece: piece.slug, seed: piece.seed, ...PREVIEW });
     const plot = plotNode(result.svg);
     if (!plot) throw new Error("the server sent an SVG that cannot be read");
     sheet.style.aspectRatio = `${result.page.width} / ${result.page.height}`;

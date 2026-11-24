@@ -12,7 +12,7 @@ from inkfield.finish.order import order
 from inkfield.finish.tidy import tidy
 from inkfield.finish.wobble import wobble
 
-FINISH_PARAMS = [Slider("wobble", "Hand wobble", 0, 1, 0.01, 0), Toggle("border", "Border", True)]
+FINISH_PARAMS = [Slider("wobble", "Hand wobble", 0, 1, 0.01, 0), Toggle("border", "Border", False)]
 FINISH_INFO = "Effects that work on any piece, because every piece hands over plain pen strokes."
 BORDER_GAP = 0.035   # inset of the inner border line, as a fraction of frame.scale
 

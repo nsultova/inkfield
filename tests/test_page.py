@@ -12,7 +12,7 @@ from inkfield.page.svg import read_settings, to_svg
 
 
 def test_pages():
-    assert make_page(resolve(PAGE_PARAMS, None)) == Page(210, 297, 16)
+    assert make_page(resolve(PAGE_PARAMS, None)) == Page(250, 250, 16)
     assert make_page(resolve(PAGE_PARAMS, {"format": "A3", "orientation": "landscape", "margin": 20})) == Page(420, 297, 20)
 
 def test_frames():

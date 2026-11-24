@@ -12,7 +12,7 @@ from inkfield.core.frame import Frame
 FORMATS = {"A4": (210, 297), "A3": (297, 420), "Square": (250, 250)}      # portrait width, height in mm
 PAGE_PARAMS = [
     Choice("composition", "Composition", ("framed", "fill page"), "framed"),
-    Choice("format", "Format", ("A4", "A3", "Square"), "A4"),
+    Choice("format", "Format", ("A4", "A3", "Square"), "Square"),
     Choice("orientation", "Orientation", ("portrait", "landscape"), "portrait"),
     Slider("margin", "Margin", 5, 40, 1, 16, " mm"),
     Choice("pen", "Pen", ("0.2", "0.3", "0.5", "0.8"), "0.3"),

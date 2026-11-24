@@ -22,7 +22,7 @@ def test_index_and_pieces(client):
 
 def test_render(client):
     r = client.post("/api/render", json={"piece": "chemical-waves", "seed": 7}).json()
-    assert r["svg"].startswith("<svg") and r["stats"]["strokes"] > 5 and r["page"] == {"width": 210, "height": 297, "margin": 16}
+    assert r["svg"].startswith("<svg") and r["stats"]["strokes"] > 5 and r["page"] == {"width": 250, "height": 250, "margin": 16}
     assert r["settings"]["params"]["sources"] == 8
 
 def test_errors(client):

@@ -78,7 +78,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .index--pg { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: clamp(1rem, 2.5vw, 2rem); }
 .work { display: block; text-decoration: none; color: inherit; }
 .work-sheet {
-  aspect-ratio: 210 / 297; background: var(--paper); border-radius: 2px; box-shadow: var(--sheet-shadow);
+  aspect-ratio: 1; background: var(--paper); border-radius: 2px; box-shadow: var(--sheet-shadow);
   display: grid; place-items: center; overflow: hidden; transition: opacity .4s;
 }
 .work:hover .work-sheet { opacity: .84; }

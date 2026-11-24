@@ -34,3 +34,11 @@ def test_page_has_both_views():
     html = (WEB / "index.html").read_text()
     for needle in ['id="gallery"', 'id="studio"', 'id="home"']:
         assert needle in html, needle
+
+
+def test_page_files_are_revalidated_on_every_load(tmp_path):
+    # Without Cache-Control a browser guesses how long app.css and app.js stay fresh from their
+    # age, and can pair a new index.html with yesterday's script: a blank page.
+    client = TestClient(create_app(tmp_path), base_url="http://127.0.0.1")
+    for path in ["/", "/app.css", "/app.js"]:
+        assert client.get(path).headers.get("cache-control") == "no-cache", path

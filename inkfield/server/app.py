@@ -36,6 +36,20 @@ SVG_HEADERS = {"X-Content-Type-Options": "nosniff",
                "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'"}
 
 
+class PageFiles(StaticFiles):
+    """The page's own files, checked with the server on every load ("no-cache").
+
+    Left to itself a browser guesses how long a file stays fresh from its age, and after an update
+    can pair the new index.html with an old app.js or app.css: a blank, unstyled page. With
+    "no-cache" it asks each time and gets a short "not modified" answer when nothing changed.
+    """
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 class Refused(Exception):
     """An error answered as {"error": message} with the given HTTP status."""
 
@@ -142,5 +156,5 @@ def create_app(candidates_dir: Path = Path("candidates"), pieces: dict | None = 
     def no_such_endpoint(rest: str):
         raise Refused(404, f"no such endpoint: /api/{rest}")
 
-    app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
+    app.mount("/", PageFiles(directory=WEB, html=True), name="web")
     return app

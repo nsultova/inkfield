@@ -33,7 +33,7 @@ def test_every_page_combination_stays_inside_the_margin(fmt, orient, comp):
 def test_garbage_settings_do_not_crash():           # Review Focus 1
     r = render(PIECES, "chemical-waves", seed="abc", params={"sources": "many", "gone": 3, "wavelength": 1e9}, finish={"border": "off"}, page={"format": "B5", "margin": -4})
     assert r.settings["seed"] == 0 and r.settings["params"]["sources"] == 8 and r.settings["params"]["wavelength"] == 14
-    assert r.settings["page"]["format"] == "A4" and r.settings["page"]["margin"] == 5 and "gone" not in r.settings["params"]
+    assert r.settings["page"]["format"] == "Square" and r.settings["page"]["margin"] == 5 and "gone" not in r.settings["params"]
 
 @pytest.mark.parametrize("junk", [[1, 2], "abc", 7, None, ""])
 def test_settings_that_are_not_dicts_fall_back_to_defaults(junk):

@@ -28,8 +28,8 @@ imports (the ones section 2 allows), constants, and the helper functions and cla
      Two pieces may not share a slug.
    - `title` and `subtitle`: shown in the list of pieces.
    - `framed_shape`: `"circle"` or `"rect"`. In "framed" composition the app takes the
-     largest frame of this shape that fits inside the margin. With the border off, that is the
-     piece's frame; with the border on (the default), the piece gets the slightly smaller frame
+     largest frame of this shape that fits inside the margin. With the border off (the default), that is the
+     piece's frame; with the border on, the piece gets the slightly smaller frame
      inside the border's inner line.
    - `info`: a few sentences shown behind the *i* button in the app.
 3. **`PARAMS`**, a list of controls from `inkfield.core.controls`:
@@ -148,7 +148,7 @@ Run every command from the repository root.
    It prints the number of strokes, metres drawn, metres of pen-up travel and an estimate of
    the plot time. Use `--set name=value` once per control. The other options are `--seed`, the
    page (`--composition`, `--format`, `--orientation`, `--margin`, `--pen`) and the finishing
-   effects (`--wobble`, `--no-border`); see `uv run inkfield render --help`.
+   effects (`--wobble`, `--border`); see `uv run inkfield render --help`.
 
 3. Look at it. Open the SVG in a browser, or start the studio with `uv run inkfield`, pick the
    piece and move its sliders. Check that the picture matches the docstring, that every control

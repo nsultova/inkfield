@@ -42,7 +42,7 @@ def _parser() -> argparse.ArgumentParser:
         draw.add_argument(f"--{name}", choices=PAGE_CHOICES[name])
     draw.add_argument("--margin", type=float, help="mm")
     draw.add_argument("--wobble", type=float, help="0 … 1")
-    draw.add_argument("--no-border", action="store_true")
+    draw.add_argument("--border", action="store_true", help="add the double outline")
     draw.add_argument("--set", type=_name_value, action="append", default=[], metavar="NAME=VALUE",
                       help="a piece setting; repeat for several")
     draw.add_argument("-o", "--output", required=True, metavar="FILE")
@@ -58,7 +58,7 @@ def _render(args) -> int:
         return 2
     page = {name: getattr(args, name) for name in ("composition", "format", "orientation", "pen", "margin")
             if getattr(args, name) is not None}
-    finish = {"border": not args.no_border}
+    finish = {"border": args.border}
     if args.wobble is not None:
         finish["wobble"] = args.wobble
     result = render(pieces, args.slug, args.seed, dict(args.set), finish, page)
