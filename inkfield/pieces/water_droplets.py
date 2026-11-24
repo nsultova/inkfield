@@ -1,31 +1,36 @@
-"""Water droplets: ripples spreading on a puddle where a few drops have just fallen.
+"""Water droplets: ripples spreading on still water where a few drops have just fallen.
 
 What the picture shows
 ----------------------
-A puddle seen a little from the side. A handful of drops have landed in it. Around each impact
+Water seen a little from the side. A handful of drops have landed in it. Around each impact
 there is a tight knot of small circles where the drop went in, a set of wavy rings spreading out
 from it, and a few tiny splash drops thrown out to the side, each with its own little rings.
-Where the ripples of two drops overlap, each one bends the other's rings. A wobbly outline or two
-marks the edge of the puddle.
+Where the ripples of two drops overlap, each one bends the other's rings. No two drops are alike:
+each has its own size, its own number of rings and its own number of splash drops.
 
 The model
 ---------
 This is drawing, not fluid physics. Every ring is a closed curve around a centre c, written in
 polar form: a radius r(θ) for each direction θ from 0 to 2π.
 
-* The drops. Each drop sits at a random place in the middle 70 % of the frame and has an age a,
-  uniform between 0.4 and 1. A young drop has made fewer rings: it has
+* The drops. Each drop sits at a random place in the middle 70 % of the frame. With clustering
+  above 0 the drops are instead scattered around the frame's centre like a bell curve whose
+  width shrinks to 30 % at full clustering.
+* Three random numbers per drop, each uniform between 0 and 1, make the drops differ: u_rings,
+  u_size and u_splash. Each belongs to one "variety" control v between 0 and 1; at v = 0 every
+  drop is the same, at v = 1 the drops differ as much as they can.
+* How many rings. A drop has
 
-      n = max(2, int(rings · a))
+      n = max(2, int(rings · (1 − v_rings · (1 − u_rings))))
 
-  ripple rings. With clustering above 0 the drops are instead scattered around the frame's
-  centre like a bell curve whose width shrinks to 30 % at full clustering.
-* The gap. All ripple sizes are measured in one length, the first ring gap
+  ripple rings: `rings` at most, and down to 2 for an unlucky drop at full variety.
+* The gap. All sizes of one drop are measured in one length, its first ring gap
 
-      s = spacing · L
+      s = spacing · L · (1 + 0.7 · v_size · (2 · u_size − 1))
 
   where L is the frame's reference length (half its shorter side). So the same settings give
-  the same picture on any paper.
+  the same picture on any paper. At full size variety s runs from 0.3 to 1.7 times
+  spacing · L: small drops with tight rings next to large ones with wide rings.
 * Ripple ring k (k = 0, 1, ..., n − 1) starts as a circle of radius
 
       r_k = s · g^k
@@ -37,14 +42,15 @@ polar form: a radius r(θ) for each direction θ from 0 to 2π.
 
       wobble_k(θ) = (w · s · (1 + 0.05 · k) / 3) · Σ_f sin(f · θ + φ_f),    f = 3, 7, 13
 
-* Interference. Each other drop d sends out waves of wavelength λ = 2.4 · s. At the point p of
-  the plain circle in direction θ, every other drop pushes the ring in or out by
+* Interference. Each other drop d sends out waves of wavelength λ_d = 2.4 · s_d, with s_d that
+  other drop's gap. At the point p of the plain circle in direction θ, every other drop pushes
+  the ring in or out by
 
-      interference_k(θ) = i · s · Σ_d cos(2π · |p − d| / λ)
+      interference_k(θ) = i · s · Σ_d cos(2π · |p − d| / λ_d)
 
   so where two ripple systems overlap the rings take on the other's rhythm. With more than three
   other drops the sum is scaled by 3 / (number of other drops): the push never grows past what
-  three drops' waves could do, so a crowded puddle is not shaken harder than a quiet one.
+  three drops' waves could do, so crowded water is not shaken harder than quiet water.
 * The ring is then r(θ) = r_k + wobble_k(θ) + interference_k(θ), kept at least 0.2 · r_k so a
   strong push flattens the ring instead of folding it through its centre, and placed at
   c + r(θ) · (cos θ, sin θ).
@@ -52,32 +58,36 @@ polar form: a radius r(θ) for each direction θ from 0 to 2π.
   ripple ring is squeezed by the factor `squash` along an axis tilted 0.15 radians (about 9°)
   from the horizontal: turn the ring by −0.15, multiply its x by squash, turn it back.
 * The impact. Three small circles of radius j · 0.22 · s (j = 1, 2, 3) at the centre.
-* Splashes. A few tiny drops are thrown out: each lands at a random direction and at a random
-  distance between 0.7 · s and 4.8 · s, and has three circles of radius j · 0.225 · s.
-* The puddle edge. One or more ellipses around the frame's centre, with half-axes 0.88 of the
-  frame's half-width and half-height, each next one 4 % smaller, wobbling by 0.019 · L with
-  five bumps around: x = c_x + (0.88 · W · (1 − 0.04 · m) + wobble(θ)) · cos θ, and likewise y.
+* Splashes. A drop throws out
+
+      round(splashes · (1 − v_splash · u_splash))
+
+  tiny drops: `splashes` at most, and none for an unlucky drop at full variety. Each lands at a
+  random direction and at a random distance between 0.7 · s and 4.8 · s, and has three circles
+  of radius j · 0.225 · s.
 
 The controls
 ------------
 Drops           how many drops hit the water. Adding one leaves the others as they were.
-Rings per drop  the most ripple rings a drop can have; younger drops have fewer.
-Ring spacing    the first ring gap s, as a fraction of the frame's reference length.
+Rings per drop  the most ripple rings a drop can have.
+Ring variety    v_rings: 0 = every drop has all its rings, 1 = anything from 2 rings to all.
+Ring spacing    the first ring gap s of a middle-sized drop, as a fraction of the frame's
+                reference length.
+Size variety    v_size: 0 = every drop the same size, 1 = from 0.3 to 1.7 times that size.
 Ring spread     g, how much each ring's radius grows over the one inside it (1 = even gaps).
 Wobble          w, how uneven the rings are, in ring gaps.
 Interference    i, how far each other drop's waves push a ring in or out, in ring gaps
                 (with more than three other drops, their sum is scaled down to three drops' worth).
 Squash          the oblique view: 1 = seen from straight above, smaller = from lower down.
 Clustering      0 = drops spread evenly over the middle of the frame, 1 = bunched near its centre.
-Splashes        how many tiny splash drops each drop throws out.
-Puddle edge     how many outlines mark the edge of the puddle (0 = none).
+Splashes        the most tiny splash drops a drop throws out.
+Splash variety  v_splash: 0 = every drop throws that many, 1 = anything from none to that many.
 
 How the lines are drawn
 -----------------------
-1. Draw all random numbers in a fixed order: the puddle's wobble start, then everything for
-   every possible drop (place, age, wobble starts, splashes).
-2. Draw the puddle edge.
-3. For each drop: its ripple rings from the inside out, then the impact circles, then the
+1. Draw all random numbers in a fixed order, for every possible drop: place, the three variety
+   numbers, wobble starts, splashes.
+2. For each drop: its ripple rings from the inside out, then the impact circles, then the
    splashes.
 """
 import math
@@ -92,34 +102,37 @@ from inkfield.core.stroke import Stroke
 META = Meta(
     slug="water-droplets",
     title="Water droplets",
-    subtitle="Ripples on a puddle",
+    subtitle="Ripples on still water",
     framed_shape="rect",
     seed=15,
     info=("Each drop sends out wavy rings whose radii grow by a fixed factor, r_k = s · g^k. "
           "Three sine waves make each ring uneven, and every other drop's waves push it in and "
           "out, so overlapping ripples bend each other. The rings are squashed into ellipses as "
-          "if the puddle were seen from the side. Small circles mark the impact, tiny splash "
-          "drops land nearby, and a wobbly outline marks the puddle's edge."),
+          "if the water were seen from the side. Small circles mark the impact and tiny splash "
+          "drops land nearby. The three variety controls let the drops differ in size, in "
+          "how many rings they have and in how many splash drops they throw out."),
 )
 
 PARAMS = [
-    Slider("drops",        "Drops",          1,    24,   1,     4),
-    Slider("rings",        "Rings per drop", 2,    24,   1,     11),
-    Slider("spacing",      "Ring spacing",   0.02, 0.12, 0.005, 0.05),
-    Slider("growth",       "Ring spread",    1,    1.2,  0.01,  1.11),
-    Slider("wobble",       "Wobble",         0,    1,    0.01,  0.35),
-    Slider("interference", "Interference",   0,    0.5,  0.01,  0.16),
-    Slider("squash",       "Squash",         0.5,  1,    0.01,  0.85),
-    Slider("clustering",   "Clustering",     0,    1,    0.01,  0),
-    Slider("splashes",     "Splashes",       0,    12,   1,     5),
-    Slider("puddle",       "Puddle edge",    0,    4,    1,     2),
+    Slider("drops",          "Drops",          1,    24,   1,     4),
+    Slider("rings",          "Rings per drop", 2,    24,   1,     11),
+    Slider("ring_variety",   "Ring variety",   0,    1,    0.01,  0.6),
+    Slider("spacing",        "Ring spacing",   0.02, 0.12, 0.005, 0.05),
+    Slider("size_variety",   "Size variety",   0,    1,    0.01,  0.3),
+    Slider("growth",         "Ring spread",    1,    1.2,  0.01,  1.11),
+    Slider("wobble",         "Wobble",         0,    1,    0.01,  0.35),
+    Slider("interference",   "Interference",   0,    0.5,  0.01,  0.16),
+    Slider("squash",         "Squash",         0.5,  1,    0.01,  0.85),
+    Slider("clustering",     "Clustering",     0,    1,    0.01,  0),
+    Slider("splashes",       "Splashes",       0,    12,   1,     5),
+    Slider("splash_variety", "Splash variety", 0,    1,    0.01,  0.6),
 ]
 
 MAX_DROPS = next(int(control.max) for control in PARAMS if control.name == "drops")
 MAX_SPLASHES = next(int(control.max) for control in PARAMS if control.name == "splashes")
 
 DROP_SPREAD = 0.7              # drops land within this share of the frame's half-sizes
-YOUNGEST, OLDEST = 0.4, 1.0    # range of a drop's age: the share of its rings made so far
+SIZE_RANGE = 0.7               # at full size variety a drop's gap is up to this share larger or smaller
 CLUSTER_PULL = 0.7             # full clustering narrows the bell curve by this share
 WOBBLE_FREQS = (3, 7, 13)      # bumps around a ring, one sine wave each
 WOBBLE_GROWTH = 0.05           # the wobble grows by this share with every ring
@@ -137,11 +150,7 @@ SPLASH_GAP = 0.225             # their spacing, in ring gaps
 SPLASH_WOBBLE = 0.0            # unevenness of splash rings, in ring gaps (0 = true circles)
 SPLASH_WOBBLE_FREQ = 5         # bumps around a splash ring
 SPLASH_WOBBLE_GROWTH = 0.1     # splash wobble grows by this share per ring
-PUDDLE_SIZE = 0.88             # puddle half-axes, as a share of the frame's half-sizes
-PUDDLE_STEP = 0.04             # each further puddle outline is this share smaller
-PUDDLE_WOBBLE = 0.019          # puddle edge wobble, in frame reference lengths
-PUDDLE_BUMPS = 5               # bumps around the puddle edge
-RING_POINTS = 200              # fewest points on a ripple ring or puddle outline
+RING_POINTS = 200              # fewest points on a ripple ring
 SPLASH_POINTS = 70             # fewest points on a splash ring
 IMPACT_POINTS = 32             # fewest points on an impact circle
 POINT_GAP = 0.5                # largest distance between neighbouring points on a curve, mm
@@ -151,33 +160,33 @@ POINT_GAP = 0.5                # largest distance between neighbouring points on
 class Drop:
     x: float
     y: float
-    age: float          # YOUNGEST to OLDEST: the share of the rings this drop has made
+    u_rings: float      # the three variety numbers, each in [0, 1): how many rings,
+    u_size: float       # how large,
+    u_splash: float     # how many splash drops
     phases: tuple       # where each wobble sine wave starts, one per WOBBLE_FREQS
     splashes: tuple     # MAX_SPLASHES draws of (direction, distance, phase, phase), each in [0, 1)
 
 
 def generate(params, frame, rng) -> list[Stroke]:
-    gap = params["spacing"] * frame.scale
-
     # 1. All random numbers, in a fixed order.
-    puddle_phase = rng.uniform(0, 2 * math.pi)
     drops = place_drops(frame, rng, params["drops"], params["clustering"])
+    gaps = [ring_gap(params["spacing"] * frame.scale, params["size_variety"], drop.u_size)
+            for drop in drops]
 
-    # 2. The edge of the puddle.
-    strokes = [Stroke(edge) for edge in puddle_edge(frame, params["puddle"], puddle_phase)]
-
-    # 3. Each drop: ripples from the inside out, the impact, the splashes.
-    for drop in drops:
-        others = [other for other in drops if other is not drop]
-        for k in range(ring_count(params["rings"], drop.age)):
+    # 2. Each drop: ripples from the inside out, the impact, the splashes.
+    strokes = []
+    for i, (drop, gap) in enumerate(zip(drops, gaps)):
+        others = [(drops[j], gaps[j]) for j in range(len(drops)) if j != i]
+        for k in range(ring_count(params["rings"], params["ring_variety"], drop.u_rings)):
             strokes.append(Stroke(ripple_ring(drop, k, gap, params, others)))
         strokes += [Stroke(ring) for ring in impact_rings(drop, gap)]
-        strokes += [Stroke(ring) for ring in splash_rings(drop, gap, params["splashes"])]
+        count = splash_count(params["splashes"], params["splash_variety"], drop.u_splash)
+        strokes += [Stroke(ring) for ring in splash_rings(drop, gap, count)]
     return strokes
 
 
 def place_drops(frame, rng, count, clustering) -> list[Drop]:
-    """Where the drops land, how old they are, and the random numbers for their rings.
+    """Where the drops land, their three variety numbers, and the random numbers for their rings.
 
     Everything is drawn for MAX_DROPS drops (and MAX_SPLASHES splashes each) and only the first
     `count` are used, so the rng is left in the same state for any count and any number of
@@ -189,7 +198,7 @@ def place_drops(frame, rng, count, clustering) -> list[Drop]:
     """
     bell = rng.standard_normal((MAX_DROPS, 2))
     even = rng.uniform(-1, 1, (MAX_DROPS, 2))
-    ages = rng.uniform(YOUNGEST, OLDEST, MAX_DROPS)
+    variety = rng.random((MAX_DROPS, 3))
     phases = rng.uniform(0, 2 * math.pi, (MAX_DROPS, len(WOBBLE_FREQS)))
     splashes = rng.random((MAX_DROPS, MAX_SPLASHES, 4))
 
@@ -199,15 +208,26 @@ def place_drops(frame, rng, count, clustering) -> list[Drop]:
         offset = even
     xs = frame.cx + offset[:, 0] * DROP_SPREAD * frame.half_w
     ys = frame.cy + offset[:, 1] * DROP_SPREAD * frame.half_h
-    return [Drop(x=float(xs[i]), y=float(ys[i]), age=float(ages[i]),
+    return [Drop(x=float(xs[i]), y=float(ys[i]), u_rings=float(variety[i, 0]),
+                 u_size=float(variety[i, 1]), u_splash=float(variety[i, 2]),
                  phases=tuple(float(p) for p in phases[i]),
                  splashes=tuple(tuple(float(u) for u in draw) for draw in splashes[i]))
             for i in range(count)]
 
 
-def ring_count(rings, age):
-    """n = max(2, int(rings · age)): a young drop has made fewer rings."""
-    return max(2, int(rings * age))
+def ring_count(rings, variety, u):
+    """n = max(2, int(rings · (1 − v · (1 − u)))): `rings` at most, fewer for an unlucky drop."""
+    return max(2, int(rings * (1 - variety * (1 - u))))
+
+
+def ring_gap(gap, variety, u):
+    """s = gap · (1 + 0.7 · v · (2u − 1)): this drop's first ring gap, around the common one."""
+    return gap * (1 + SIZE_RANGE * variety * (2 * u - 1))
+
+
+def splash_count(splashes, variety, u):
+    """round(splashes · (1 − v · u)): `splashes` at most, fewer for an unlucky drop."""
+    return round(splashes * (1 - variety * u))
 
 
 def angles(radius, fewest):
@@ -221,22 +241,6 @@ def closed_curve(cx, cy, theta, r):
     points = np.column_stack([cx + r * np.cos(theta), cy + r * np.sin(theta)])
     points[-1] = points[0]
     return points
-
-
-def puddle_edge(frame, count, phase):
-    """`count` wobbly ellipses around the frame's centre, each PUDDLE_STEP smaller than the last."""
-    edges = []
-    for m in range(count):
-        size = PUDDLE_SIZE * (1 - PUDDLE_STEP * m)
-        theta = angles(size * max(frame.half_w, frame.half_h), RING_POINTS)
-        wobble = PUDDLE_WOBBLE * frame.scale * np.sin(PUDDLE_BUMPS * theta + phase)
-        points = np.column_stack([
-            frame.cx + (size * frame.half_w + wobble) * np.cos(theta),
-            frame.cy + (size * frame.half_h + wobble) * np.sin(theta),
-        ])
-        points[-1] = points[0]
-        edges.append(points)
-    return edges
 
 
 def ripple_ring(drop, k, gap, params, others):
@@ -261,7 +265,10 @@ def wobble(drop, k, gap, strength, theta):
 
 
 def interference(drop, radius, gap, strength, others, theta):
-    """i · s · Σ_d cos(2π · |p − d| / λ), with p on the plain circle and λ = 2.4 · s.
+    """i · s · Σ_d cos(2π · |p − d| / λ_d), with p on the plain circle and λ_d = 2.4 · s_d.
+
+    `others` is a list of (drop, its gap s_d): each other drop's waves are as long as its own
+    rings are wide.
 
     With more than three other drops the sum is scaled by 3 / (number of other drops), so a ring
     is never pushed further than three drops' waves could push it, however many drops there are.
@@ -270,10 +277,10 @@ def interference(drop, radius, gap, strength, others, theta):
         return 0.0
     px = drop.x + radius * np.cos(theta)
     py = drop.y + radius * np.sin(theta)
-    other_x = np.array([d.x for d in others])[:, None]       # one row per other drop
-    other_y = np.array([d.y for d in others])[:, None]
+    other_x = np.array([d.x for d, _ in others])[:, None]    # one row per other drop
+    other_y = np.array([d.y for d, _ in others])[:, None]
     distance = np.hypot(px - other_x, py - other_y)
-    wavelength = INTERFERENCE_WAVELENGTH * gap
+    wavelength = INTERFERENCE_WAVELENGTH * np.array([s for _, s in others])[:, None]
     share = min(1.0, INTERFERENCE_DROPS / len(others))      # 1 for a few drops, less for many
     return strength * gap * share * np.cos(2 * math.pi * distance / wavelength).sum(axis=0)
 
