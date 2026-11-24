@@ -127,7 +127,7 @@ def simplify(points, tol: float) -> np.ndarray:
                 spans += [(first, furthest), (furthest, last)]
         return points[sorted(keep)]
 
-    What the code below does differently: it handles all open spans in one numpy pass per round
+    What the code (in `simplify_many`, below) does differently: it handles all open spans in one numpy pass per round
     instead of one at a time, which is far faster on long lines (each separate numpy call has a
     fixed cost, and the plain version makes one per kept point). In each round, the in-between
     points of every open span go into one flat list, each tagged with the span it belongs to.
@@ -140,12 +140,30 @@ def simplify(points, tol: float) -> np.ndarray:
     (Only last-bit rounding in the distances can differ from another way of computing them, and
     that can only switch which of two points, equally far to within that rounding, is kept.)
     """
-    points = np.asarray(points, dtype=np.float64)
-    if len(points) < 3:
-        return points.copy()
+    return simplify_many([points], tol)[0]
+
+
+def simplify_many(lines, tol: float) -> list[np.ndarray]:
+    """`simplify` for many lines at once: the same points are kept as one line at a time.
+
+    All lines are laid end to end in one long list of points, and the first round starts with
+    one span per line (its first point to its last) instead of a single span. From there on the
+    rounds are those of `simplify`: a span never looks beyond its own two ends, so lines lying
+    next to each other in the list cannot influence one another. A drawing of several hundred
+    short strokes then costs a handful of numpy passes in total instead of a handful per stroke.
+    """
+    lines = [np.asarray(line, dtype=np.float64).reshape(-1, 2) for line in lines]
+    if not lines:
+        return []
+    sizes = np.array([len(line) for line in lines])
+    begins = np.cumsum(sizes) - sizes                            # where each line starts in the list
+    points = np.vstack(lines)
     keep = np.zeros(len(points), dtype=bool)
-    keep[0] = keep[-1] = True
-    first, last = np.array([0]), np.array([len(points) - 1])   # the spans still to check
+    has_points = sizes > 0
+    keep[begins[has_points]] = keep[(begins + sizes - 1)[has_points]] = True
+    has_points_between = sizes >= 3
+    first = begins[has_points_between]                           # the spans still to check
+    last = (begins + sizes - 1)[has_points_between]
     while len(first):
         # Every point strictly between the ends of each span, tagged with the span it is in.
         count = last - first - 1                                 # at least 1 for every span
@@ -166,7 +184,7 @@ def simplify(points, tol: float) -> np.ndarray:
         last = np.concatenate([index[split], last[span[split]]])
         has_points_between = last - first >= 2
         first, last = first[has_points_between], last[has_points_between]
-    return points[keep]
+    return [points[b:b + n][keep[b:b + n]] for b, n in zip(begins.tolist(), sizes.tolist())]
 
 
 def _distance_to_segment(p, a, b) -> np.ndarray:

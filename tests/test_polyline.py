@@ -53,3 +53,15 @@ def test_simplify_keeps_every_point_within_tol(closed):
         ab = b - a; t = np.clip((p - a) @ ab / (ab @ ab), 0, 1)
         nearest = np.minimum(nearest, np.hypot(*(p - a - t[:, None] * ab).T))
     assert nearest.max() <= 0.02
+
+
+def test_simplify_many_keeps_exactly_what_simplify_keeps_line_by_line():
+    from inkfield.core.polyline import simplify_many
+    rng = np.random.default_rng(3)
+    lines = [np.cumsum(rng.normal(0, 0.05, (n, 2)), axis=0) for n in (0, 1, 2, 3, 40, 500, 2, 1200)]
+    t = np.linspace(0, 2 * np.pi, 300); ring = np.column_stack([np.cos(t), np.sin(t)]); ring[-1] = ring[0]
+    lines.append(ring)
+    together = simplify_many(lines, 0.02)
+    assert len(together) == len(lines) and simplify_many([], 0.02) == []
+    for line, out in zip(lines, together): assert np.array_equal(out, simplify(line, 0.02))
+    assert len(together[5]) < 500 and np.array_equal(together[-1][0], together[-1][-1])

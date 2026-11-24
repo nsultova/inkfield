@@ -24,7 +24,7 @@ import math
 
 import numpy as np
 
-from inkfield.core.polyline import length, simplify
+from inkfield.core.polyline import length, simplify_many
 from inkfield.core.stroke import Stroke
 
 NEIGHBOUR_CELLS = [(dx, dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)]
@@ -33,7 +33,8 @@ NEIGHBOUR_CELLS = [(dx, dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)]
 def tidy(strokes, min_length=1.5, join_tol=0.1, simplify_tol=0.02) -> list[Stroke]:
     joined = join(strokes, join_tol)
     kept = [s for s in joined if length(s.points) >= min_length]
-    return [Stroke(simplify(s.points, simplify_tol), s.layer) for s in kept]
+    thinned = simplify_many([s.points for s in kept], simplify_tol)      # all strokes in one go
+    return [Stroke(points, s.layer) for points, s in zip(thinned, kept)]
 
 
 def join(strokes, tol: float) -> list[Stroke]:
